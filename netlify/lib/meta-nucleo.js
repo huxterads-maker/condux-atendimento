@@ -14,7 +14,7 @@ const cupomFixoTxt = () => [
 
 const BASE = `
 EMPRESA
-- ${MARCA.nome}: fios e cabos elétricos direto da fábrica, para residências, comércios e obras. Empresa: ${MARCA.razao_social}.
+- ${MARCA.nome}: fios e cabos elétricos direto da fábrica, para residências, comércios e obras. Empresa: ${MARCA.razao_social}, CNPJ ${MARCA.cnpj} (pode informar ao cliente que pedir, para dar confiança).
 - Site oficial (loja): conduxcabos.com.br (no Instagram, link não é clicável: diga "link na bio"). Também vende no Mercado Livre. Mencione o Mercado Livre SOMENTE para provar que a loja é real (desconfiança / "é golpe?"); mesmo assim, direcione a compra para o site.
 - Toda compra sai com NOTA FISCAL. Preço direto de fábrica, sem intermediário.
 

@@ -14,6 +14,7 @@ const obrigatoria = nome => {
 const MARCA = {
   nome: 'Condux',
   razao_social: 'CONDUX E-COMMERCE LTDA',
+  cnpj: '65.639.175/0001-99',
   // Domínio principal da loja Nuvemshop (os links de produto e de carrinho usam este)
   loja: 'https://conduxcabos.com.br',
   // Hosts aceitos em links que a IA escrever (qualquer outro é bloqueado)
