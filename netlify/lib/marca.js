@@ -31,7 +31,7 @@ const MARCA = {
   whatsapp: '(11) 99422-1228',
   user_agent: 'Condux IA (contato@conduxcabos.com.br)',
   // Condições comerciais do site (conferir com a Nuvemshop se mudar)
-  frete_gratis_acima: 150,          // R$ — valor exibido na loja em 27/09/2026
+  frete_gratis_acima: 99,           // R$ — definido por Rogerio em 28/09/2026 (loja e landing)
   pix_desconto: '10%',
   parcelas: 10,
   // Atendimento humano

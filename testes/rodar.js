@@ -71,11 +71,11 @@ const catalogo = [
     const r = C.resolverCarrinho(catalogo, [{ cod: 15, variante: '', qtd: 1 }]);
     assert.strictEqual(r.itens.length, 1); assert.deepStrictEqual(r.erros, []);
   });
-  await t('resumo mostra frete grátis só acima de R$ 150', () => {
+  await t('resumo mostra frete grátis só a partir de R$ 99', () => {
     const a = C.resumoCliente(C.resolverCarrinho(catalogo, [{ cod: 12, variante: 'Azul', qtd: 1 }]).itens);
     const b = C.resumoCliente(C.resolverCarrinho(catalogo, [{ cod: 12, variante: 'Azul', qtd: 3 }]).itens);
     assert.ok(!/frete grátis/.test(a)); assert.ok(/frete grátis/.test(b));
-    assert.ok(/faltam R\$ 96,75/.test(C.blocoCarrinho(C.resolverCarrinho(catalogo, [{ cod: 12, variante: 'Azul', qtd: 1 }]).itens)));
+    assert.ok(/faltam R\$ 45,75/.test(C.blocoCarrinho(C.resolverCarrinho(catalogo, [{ cod: 12, variante: 'Azul', qtd: 1 }]).itens)));
   });
   await t('rodada: IA fecha o pedido → link real + resumo, sem cupom inventado', async () => {
     const respostaIA = JSON.stringify({ categoria: 'interesse_compra', acao: 'responder', resposta: 'Prontinho! Seu carrinho: {LINK_CARRINHO}', carrinho: [{ cod: 13, variante: 'Preto', qtd: 2 }], enviar_link: true, cupom: 'INVENTADO10' });

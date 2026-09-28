@@ -13,7 +13,7 @@ Foi adaptado do atendimento da Huxter, mas é um projeto **separado**: repositó
 
 ## Onde fica cada coisa
 
-- `netlify/lib/marca.js` — **dados da Condux**: domínio, frete grátis (R$ 150), Pix, parcelas, horário, nome do atendente e cupons fixos. É o primeiro lugar a editar.
+- `netlify/lib/marca.js` — **dados da Condux**: domínio, frete grátis (R$ 99), Pix, parcelas, horário, nome do atendente e cupons fixos. É o primeiro lugar a editar.
 - `netlify/lib/meta-nucleo.js` — base de conhecimento (bitolas, segurança técnica, condições) e regras dos comentários.
 - `netlify/lib/wa-nucleo.js` — regras do WhatsApp/Direct: necessidade → carrinho → link, pedidos, trocas e transferência.
 - `netlify/lib/catalogo.js` — busca no catálogo por bitola ("2,5", "1.5mm"), uso ("chuveiro", "tomada") e cor.
