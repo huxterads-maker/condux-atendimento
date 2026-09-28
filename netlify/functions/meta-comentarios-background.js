@@ -281,7 +281,9 @@ exports.handler = async (event) => {
     // 1) Captura
     const alvos = autorAlvo
       ? await listarAlvos(process.env.META_TOKEN, c, new Date(0), 'historico')
-      : await listarAlvos(process.env.META_TOKEN, c, new Date(cfg.responder_desde), rapido);
+      // Posts dos últimos 60 dias (comentário novo chega em post antigo); a janela
+      // responder_desde continua valendo para o COMENTÁRIO (precisaProcessar).
+      : await listarAlvos(process.env.META_TOKEN, c, new Date(Math.min(new Date(cfg.responder_desde).getTime(), Date.now() - 60 * 864e5)), rapido);
     const contexto = new Map();
     const porAnuncio = [];
     for (const alvo of alvos) {
