@@ -54,6 +54,12 @@ function resolverCarrinho(catalogo, itens) {
   return { itens: out, erros };
 }
 
+// Remove frases que citam valor de subtotal/total ou quanto falta para o frete grátis
+function semValoresAntigos(txt) {
+  const ruim = /(falta(m)?|faltando|subtotal|total)[^.!?\n]{0,60}R\$\s*[\d.,]+|R\$\s*[\d.,]+[^.!?\n]{0,40}(para o frete|pro frete|de frete gr[aá]tis)/i;
+  return String(txt).split('\n').map(l => ruim.test(l) ? l.split(/(?<=[.!?])\s+/).filter(f => !ruim.test(f)).join(' ') : l).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 const linkCarrinho = itens => itens && itens.length ? `${LOJA}/comprar/${itens.map(i => `${i.variant_id}-${i.qtd}`).join(',')}/` : null;
 const subtotal = itens => (itens || []).reduce((s, i) => s + (i.preco || 0) * i.qtd, 0);
 
@@ -126,6 +132,9 @@ async function rodadaComCarrinho({ W, perguntar, links, catalogo, carrinhoAtual,
       continue;
     }
     const mudou = !!dec.carrinho; delete dec.carrinho;
+    // Carrinho mudou nesta resposta: frases com valores de frete/subtotal que a IA
+    // calculou sobre o carrinho ANTIGO saem do texto (o resumo do sistema é o certo).
+    if (mudou) dec.resposta = semValoresAntigos(dec.resposta);
     if (!dec.enviar_link) delete dec.cupom;
     // Carrinho mudou: o resumo (itens e subtotal) é escrito pelo sistema, a partir
     // do que realmente vai no link — nunca pelo texto da IA.
@@ -149,4 +158,4 @@ async function rodadaComCarrinho({ W, perguntar, links, catalogo, carrinhoAtual,
   }
 }
 
-module.exports = { cuponsValidos, resumoCliente, hashTel, precisaCliente, rodadaComCarrinho, resolverCarrinho, linkCarrinho, subtotal, blocoCarrinho, identificarCliente, blocoCliente, urlChave };
+module.exports = { semValoresAntigos, cuponsValidos, resumoCliente, hashTel, precisaCliente, rodadaComCarrinho, resolverCarrinho, linkCarrinho, subtotal, blocoCarrinho, identificarCliente, blocoCliente, urlChave };

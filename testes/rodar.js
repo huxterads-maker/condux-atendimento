@@ -83,6 +83,11 @@ const catalogo = [
     assert.ok(r.dec.resposta.includes('https://conduxcabos.com.br/comprar/1300-2/'), r.dec.resposta);
     assert.ok(/Seu carrinho/.test(r.dec.resposta)); assert.ok(!/INVENTADO10/.test(r.dec.resposta));
   });
+  await t('rodada: carrinho muda → some "faltam R$" calculado no carrinho antigo', async () => {
+    const ia = JSON.stringify({ acao: 'responder', resposta: 'Prontinho! Faltam R$ 20,20 para o frete grátis. Quer mais alguma coisa?', carrinho: [{ cod: 12, variante: 'Azul', qtd: 3 }] });
+    const r = await C.rodadaComCarrinho({ W, perguntar: async () => ia, links: [], catalogo, carrinhoAtual: [], cuponsOk: [] });
+    assert.ok(!/20,20/.test(r.dec.resposta), r.dec.resposta); assert.ok(/Quer mais alguma coisa/.test(r.dec.resposta)); assert.ok(/Subtotal: R\$ 159,75/.test(r.dec.resposta));
+  });
   await t('rodada: carrinho inválido 2x → transfere para a equipe', async () => {
     const ruim = JSON.stringify({ acao: 'responder', resposta: 'ok {LINK_CARRINHO}', carrinho: [{ cod: 999, variante: 'Azul', qtd: 1 }], enviar_link: true });
     const r = await C.rodadaComCarrinho({ W, perguntar: async () => ruim, links: [], catalogo, carrinhoAtual: [], cuponsOk: [] });
