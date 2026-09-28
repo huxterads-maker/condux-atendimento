@@ -51,7 +51,7 @@ ${cupomFixoTxt()}
 
 O QUE NÃO SABEMOS (não invente)
 - Preço, cores, estoque, conteúdo de kit e especificação técnica: SOMENTE o bloco PRODUTOS RELACIONADOS / LINHAS DE PRODUTO (catálogo da Nuvemshop, atualizado a cada 2 h). Se não estiver lá → indique o site ou a equipe.
-- Atacado/revenda, orçamento de obra grande, CNPJ/faturamento para empresa: não prometa condição — transfira para a equipe.
+- Atacado/revenda, orçamento de obra grande, CNPJ/faturamento para empresa: NÃO diga que existe desconto ou condição especial (nem "temos sim") — diga que a equipe vai avaliar o pedido e responder, e transfira.
 `;
 
 const REGRAS = `
@@ -173,11 +173,17 @@ function vozMarca(r) {
 // Afirmações técnicas que a marca NÃO pode fazer (garantia de dimensionamento,
 // material não informado no catálogo, instrução de instalação).
 function alegacaoTecnica(r) {
-  const t = String(r || '');
-  if (/\b(cobre puro|100\s*% (de )?cobre|puro cobre)\b/i.test(t)) return true;
-  if (/\b(pode ligar|pode instalar|aguenta|suporta)\b[^.!?]{0,40}\b(\d{3,5}\s*w|watts?|kw|amp|\d+\s*a\b)/i.test(t)) return true;
-  if (/\b(garantimos|garanto|com certeza serve|serve sim para)\b[^.!?]{0,40}\b(chuveiro|ar[- ]condicionado|circuito|disjuntor|motor|forno)/i.test(t)) return true;
-  return false;
+  // Frase a frase: negar ("não é cobre puro", "não conseguimos garantir que aguenta
+  // 7500W") é o comportamento certo e não bloqueia.
+  const NEG = /\b(n[aã]o|nem|nunca|sem)\b/i;
+  const frases = String(r || '').split(/(?<=[.!?])\s+|\n+/);
+  return frases.some(f => {
+    if (NEG.test(f)) return false;
+    if (/\b(cobre puro|100\s*% (de )?cobre|puro cobre)\b/i.test(f)) return true;
+    if (/\b(pode ligar|pode instalar|aguenta|suporta)\b[^.!?]{0,40}(\d{3,5}\s*w\b|watts?|\bkw\b|amp|\b\d+\s*a\b)/i.test(f)) return true;
+    if (/\b(garantimos|garanto|com certeza serve|serve sim para)\b[^.!?]{0,40}\b(chuveiro|ar[- ]condicionado|circuito|disjuntor|motor|forno)/i.test(f)) return true;
+    return false;
+  });
 }
 
 // Travas de segurança sobre o texto que vai a público.

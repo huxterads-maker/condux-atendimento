@@ -101,6 +101,8 @@ const catalogo = [
     assert.strictEqual(W.interpretarWA(JSON.stringify({ acao: 'responder', resposta: 'Nosso cabo é cobre puro!' })).motivo, 'alegacao_tecnica');
     assert.strictEqual(W.interpretarWA(JSON.stringify({ acao: 'responder', resposta: 'Esse aguenta chuveiro de 7500W tranquilo.' })).motivo, 'alegacao_tecnica');
     assert.strictEqual(W.interpretarWA(JSON.stringify({ acao: 'responder', resposta: 'O 4 mm² é o mais indicado para chuveiro; confirme com seu eletricista.' })).acao, 'responder');
+    assert.strictEqual(W.interpretarWA(JSON.stringify({ acao: 'responder', resposta: 'Não conseguimos garantir por aqui que o 4 mm² aguenta 7500W. Confirme com o eletricista.' })).acao, 'responder');
+    assert.strictEqual(W.interpretarWA(JSON.stringify({ acao: 'responder', resposta: 'O condutor é Alucobre, não é cobre puro.' })).acao, 'responder');
   });
   await t('trava: link inventado no site vira a home da loja', () => {
     const d = W.interpretarWA(JSON.stringify({ acao: 'responder', resposta: 'Veja https://conduxcabos.com.br/produtos/inventado/ e as trocas em https://conduxcabos.com.br/trocas-e-devolucoes/' }));
