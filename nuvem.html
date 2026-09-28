@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Condux — Nuvemshop</title>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --ink:#1b1f24; --mut:#6b7280; --line:#e5e7eb; --ok:#0f9d58; --warn:#d97706; --err:#dc2626; --blue:#2563eb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111418; --card:#1a1f26; --ink:#eef1f4; --mut:#98a2b3; --line:#2a313b; } }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); font-size:14px; }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:12px 16px; display:flex; gap:16px; align-items:center; }
+  header h1 { font-size:18px; margin:0; margin-right:auto; }
+  header a { color:var(--blue); text-decoration:none; font-weight:600; }
+  main { max-width:860px; margin:0 auto; padding:16px; }
+  .box { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+  h2 { font-size:15px; margin:0 0 10px; }
+  button, input { font:inherit; color:var(--ink); }
+  button { padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:var(--card); cursor:pointer; }
+  button.pri { background:var(--blue); border-color:var(--blue); color:#fff; font-weight:600; }
+  input { padding:7px 9px; border-radius:8px; border:1px solid var(--line); background:var(--card); width:140px; }
+  .pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; color:#fff; }
+  .on { background:var(--ok); } .off { background:var(--err); } .sim { background:var(--warn); }
+  .mut { color:var(--mut); font-size:12px; }
+  .lin { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:6px 0; }
+  pre { white-space:pre-wrap; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:13px; margin:8px 0 0; }
+</style>
+</head>
+<body>
+<header><h1>🛍️ Nuvemshop — app Condux IA</h1><a href="index.html">← Painel</a></header>
+<main>
+  <div class="box">
+    <h2>Conexão com a loja</h2>
+    <div id="con" class="mut">Carregando…</div>
+    <div class="lin" style="margin-top:10px"><button class="pri" id="bConectar">Conectar Nuvemshop</button><span class="mut">Abre o admin da loja para autorizar o app (só leitura de produtos, pedidos e clientes).</span></div>
+  </div>
+  <div class="box">
+    <h2>Catálogo para a IA</h2>
+    <div id="cat" class="mut">—</div>
+    <div class="lin" style="margin-top:10px"><button id="bSync">Sincronizar agora</button><span class="mut">Roda sozinho a cada 2 horas.</span></div>
+    <div id="logs" class="mut"></div>
+  </div>
+  <div class="box">
+    <h2>Testar consulta de pedido do site</h2>
+    <div class="lin"><input id="num" placeholder="nº do pedido" inputmode="numeric"><button id="bPed">Consultar</button></div>
+    <div class="mut">Aqui mostra sem conferir telefone (só a equipe vê). No WhatsApp a IA só informa se o telefone do cliente for o mesmo do pedido.</div>
+    <pre id="ped" hidden></pre>
+  </div>
+</main>
+<script>
+var F = '/.netlify/functions/nuvem-app';
+var esc = function (s) { return String(s == null ? '' : s).replace(/[<>&"]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]; }); };
+var st = null;
+function carregar() {
+  fetch(F + '?acao=status').then(function (r) { return r.json(); }).then(function (j) {
+    st = j;
+    if (j.erro) { document.getElementById('con').textContent = j.erro; return; }
+    var c = j.conexao;
+    document.getElementById('con').innerHTML = c
+      ? '<span class="pill on">Conectada</span> Loja ' + esc(c.store_id) + ' · desde ' + new Date(c.atualizado_em).toLocaleString('pt-BR') + (c.conectado_por ? ' por ' + esc(c.conectado_por) : '') + '<br><span class="mut">Permissões: ' + esc(c.scope || '-') + '</span>'
+      : '<span class="pill off">Não conectada</span>' + (j.segredo_configurado ? '' : ' <span class="pill sim">falta NUVEM_CLIENT_SECRET no Netlify</span>');
+    document.getElementById('bConectar').textContent = c ? 'Reconectar' : 'Conectar Nuvemshop';
+    document.getElementById('cat').innerHTML = '<b>' + j.catalogo.produtos + '</b> produtos publicados vindos da API · <b>' + j.catalogo.com_estoque + '</b> com estoque';
+    document.getElementById('logs').innerHTML = (j.logs || []).map(function (l) { return '<div>' + new Date(l.em).toLocaleString('pt-BR') + ' — ' + (l.nivel === 'erro' ? '⚠️ ' : '') + esc(l.msg) + '</div>'; }).join('');
+  }).catch(function (e) { document.getElementById('con').textContent = 'Erro: ' + e.message; });
+}
+document.getElementById('bConectar').onclick = function () {
+  if (!st || !st.app_id) return;
+  window.location.href = 'https://www.conduxcabos.com.br/admin/apps/' + encodeURIComponent(st.app_id) + '/authorize';
+};
+document.getElementById('bSync').onclick = function () {
+  var b = this; b.disabled = true; b.textContent = 'Sincronizando…';
+  fetch(F, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ acao: 'sincronizar' }) })
+    .then(function () { setTimeout(function () { b.disabled = false; b.textContent = 'Sincronizar agora'; carregar(); }, 20000); });
+};
+document.getElementById('bPed').onclick = function () {
+  var n = document.getElementById('num').value.replace(/\D/g, ''); if (!n) return;
+  var out = document.getElementById('ped'); out.hidden = false; out.textContent = 'Consultando…';
+  fetch(F + '?acao=pedido&numero=' + n).then(function (r) { return r.json(); }).then(function (j) {
+    out.textContent = j.erro ? j.erro : JSON.stringify(j.pedido, null, 2) + '\n\nTelefones cadastrados no pedido: ' + j.telefones_no_pedido;
+  });
+};
+carregar();
+</script>
+</body>
+</html>

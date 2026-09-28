@@ -1,0 +1,26 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Comentários (Instagram + Facebook): rodada completa a cada 10 min
+[functions."meta-comentarios-scheduled"]
+  schedule = "*/10 * * * *"
+
+# Comentários: rodada rápida a cada minuto (anúncios ativos + posts de 3 dias)
+[functions."meta-comentarios-rapido"]
+  schedule = "* * * * *"
+
+# WhatsApp: rede de segurança — responde mensagens que ficaram sem disparo
+[functions."wa-varredura"]
+  schedule = "*/2 * * * *"
+
+# Catálogo pela API oficial da Nuvemshop (app Condux IA): a cada 2 horas
+[functions."nuvem-catalogo-scheduled"]
+  schedule = "7 */2 * * *"

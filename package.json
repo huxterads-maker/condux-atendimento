@@ -1,0 +1,8 @@
+{
+  "name": "condux-atendimento",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Condux — atendimento com IA no WhatsApp, Direct e comentários, com carrinho no site (Nuvemshop)",
+  "scripts": { "test": "node testes/rodar.js" },
+  "engines": { "node": ">=20" }
+}

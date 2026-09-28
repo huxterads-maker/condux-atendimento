@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Condux — Conectando Nuvemshop</title>
+<style>
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:#f4f5f7; color:#1b1f24; display:grid; place-items:center; min-height:100vh; padding:16px; }
+  @media (prefers-color-scheme: dark) { body { background:#111418; color:#eef1f4; } }
+  .c { max-width:460px; text-align:center; } a { color:#2563eb; font-weight:600; }
+</style>
+</head>
+<body>
+<div class="c"><h2 id="t">Conectando a Nuvemshop…</h2><p id="m">Só um instante.</p></div>
+<script>
+(function () {
+  var code = new URLSearchParams(location.search).get('code');
+  var t = document.getElementById('t'), m = document.getElementById('m');
+  // Tira o código da barra de endereço (vale uma vez só)
+  history.replaceState(null, '', location.pathname);
+  if (!code) { t.textContent = 'Nenhum código recebido'; m.innerHTML = '<a href="nuvem.html">Voltar</a>'; return; }
+  fetch('/.netlify/functions/nuvem-app', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ acao: 'conectar', code: code }) })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      if (j.ok) { t.textContent = '✅ Loja conectada!'; m.innerHTML = 'Loja ' + j.store_id + '. O catálogo já está sincronizando. <a href="nuvem.html">Ver status</a>'; setTimeout(function () { location.replace('nuvem.html'); }, 4000); }
+      else { t.textContent = 'Não foi possível conectar'; m.innerHTML = String(j.erro || 'Erro').replace(/[<>&]/g, '') + '<br><a href="nuvem.html">Voltar</a>'; }
+    })
+    .catch(function (e) { t.textContent = 'Erro'; m.textContent = e.message; });
+})();
+</script>
+</body>
+</html>

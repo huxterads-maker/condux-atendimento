@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Condux — Atendimento IA</title>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --ink:#1b1f24; --mut:#6b7280; --line:#e5e7eb; --blue:#1162b9; --ok:#0f9d58; --warn:#d97706; --err:#dc2626; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111418; --card:#1a1f26; --ink:#eef1f4; --mut:#98a2b3; --line:#2a313b; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { background:var(--blue); color:#fff; padding:18px 16px; }
+  header h1 { margin:0; font-size:20px; letter-spacing:.02em; } header p { margin:2px 0 0; opacity:.85; font-size:13px; }
+  main { max-width:960px; margin:0 auto; padding:20px 16px 64px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
+  a.card { display:block; text-decoration:none; color:inherit; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  a.card:hover { border-color:var(--blue); }
+  .t { font-weight:700; font-size:16px; } .d { color:var(--mut); font-size:13px; margin-top:4px; }
+  .st { margin-top:10px; font-size:12px; font-weight:600; }
+  .ok { color:var(--ok); } .warn { color:var(--warn); } .err { color:var(--err); }
+  h2 { font-size:15px; margin:28px 0 10px; color:var(--mut); text-transform:uppercase; letter-spacing:.06em; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .kpi { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; }
+  .kpi b { display:block; font-size:24px; font-variant-numeric:tabular-nums; } .kpi span { color:var(--mut); font-size:12px; }
+</style>
+</head>
+<body>
+<header><h1>CONDUX · Atendimento IA</h1><p>WhatsApp, Direct e comentários — a IA monta o carrinho e o cliente conclui no site.</p></header>
+<main>
+  <div class="grid">
+    <a class="card" href="whatsapp.html"><div class="t">💬 Conversas</div><div class="d">WhatsApp, Direct e Messenger. Assumir conversa, modo simulação/automático.</div><div class="st" id="s-wa">…</div></a>
+    <a class="card" href="comentarios.html"><div class="t">📣 Comentários</div><div class="d">Instagram e Facebook — posts e anúncios.</div><div class="st" id="s-com">…</div></a>
+    <a class="card" href="ia-teste.html"><div class="t">🧪 Simulador</div><div class="d">Teste a IA com o catálogo real, sem enviar nada a ninguém.</div></a>
+    <a class="card" href="nuvem.html"><div class="t">🛍️ Nuvemshop</div><div class="d">Conectar a loja e sincronizar o catálogo (base de conhecimento da IA).</div><div class="st" id="s-nuvem">…</div></a>
+  </div>
+  <h2>Últimos 7 dias</h2>
+  <div class="kpis">
+    <div class="kpi"><b id="k-conv">–</b><span>conversas com mensagem</span></div>
+    <div class="kpi"><b id="k-links">–</b><span>links de carrinho enviados</span></div>
+    <div class="kpi"><b id="k-transf">–</b><span>transferidas para a equipe</span></div>
+    <div class="kpi"><b id="k-com">–</b><span>comentários respondidos</span></div>
+  </div>
+</main>
+<script>
+const SB_URL = 'https://ilekppgaltsrwmnodqxw.supabase.co';
+const SB_KEY = 'sb_publishable_CHIZxHt21omg3SEOHfRu3g_DDnPj72G';
+const sb = (p, o = {}) => fetch(SB_URL + '/rest/v1/' + p, { ...o, headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, ...(o.headers || {}) } });
+const conta = async p => { const r = await sb(p, { method: 'HEAD', headers: { Prefer: 'count=exact' } }); const c = (r.headers.get('content-range') || '').split('/')[1]; return c ? +c : 0; };
+const set = (id, txt, cls) => { const e = document.getElementById(id); e.textContent = txt; e.className = 'st ' + (cls || ''); };
+const modo = (ativo, m) => !ativo ? ['desligado', 'err'] : m === 'automatico' ? ['● automático (enviando)', 'ok'] : ['● simulação (não envia)', 'warn'];
+(async () => {
+  try {
+    const wa = (await (await sb('wa_config?id=eq.1&select=ativo,modo,dm_ativo,dm_modo,numero_exibicao')).json())[0] || {};
+    const [t, c] = modo(wa.ativo, wa.modo); set('s-wa', `WhatsApp ${wa.numero_exibicao || '(número não configurado)'}: ${t}`, c);
+    const mc = (await (await sb('meta_config?id=eq.1&select=ativo,modo')).json())[0] || {};
+    const [t2, c2] = modo(mc.ativo, mc.modo); set('s-com', t2, c2);
+    const cat = await conta('catalogo?ativo=eq.true&select=url');
+    set('s-nuvem', cat ? `${cat} produtos no catálogo da IA` : 'loja ainda não conectada', cat ? 'ok' : 'warn');
+    const desde = new Date(Date.now() - 7 * 864e5).toISOString();
+    document.getElementById('k-conv').textContent = await conta(`wa_conversas?ultima_cliente_em=gte.${desde}&select=wa_id`);
+    document.getElementById('k-links').textContent = await conta(`wa_log?em=gte.${desde}&msg=like.${encodeURIComponent('Link de carrinho*')}&select=id`);
+    document.getElementById('k-transf').textContent = await conta(`wa_conversas?humano_desde=gte.${desde}&select=wa_id`);
+    document.getElementById('k-com').textContent = await conta(`meta_comentarios?respondido_em=gte.${desde}&select=id`);
+  } catch (e) { set('s-wa', 'erro ao ler o banco: ' + e.message, 'err'); }
+})();
+</script>
+</body>
+</html>

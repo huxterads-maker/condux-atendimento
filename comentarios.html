@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Condux — Comentários Meta</title>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --ink:#1b1f24; --mut:#6b7280; --line:#e5e7eb; --ok:#0f9d58; --warn:#d97706; --err:#dc2626; --blue:#2563eb; --soft:#eef2ff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111418; --card:#1a1f26; --ink:#eef1f4; --mut:#98a2b3; --line:#2a313b; --soft:#1e2640; } }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); font-size:14px; }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:12px 16px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; margin-right:auto; }
+  header a { color:var(--blue); text-decoration:none; font-weight:600; }
+  main { max-width:1200px; margin:0 auto; padding:16px; }
+  .box { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:16px; }
+  .ctl { display:flex; gap:10px 18px; flex-wrap:wrap; align-items:center; }
+  .ctl label { display:flex; gap:6px; align-items:center; color:var(--mut); font-size:13px; }
+  .ctl input, .ctl select, .bar input, .bar select { padding:7px 9px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:14px; }
+  button { padding:7px 12px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:14px; cursor:pointer; }
+  button.pri { background:var(--blue); border-color:var(--blue); color:#fff; font-weight:600; }
+  .pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; color:#fff; }
+  .on { background:var(--ok); } .off { background:var(--err); } .sim { background:var(--warn); } .auto { background:var(--blue); }
+  .resumo { color:var(--mut); font-size:12px; margin-top:10px; }
+  .aviso { background:#fef3c7; color:#92400e; padding:10px 14px; border-radius:10px; margin-bottom:16px; font-size:13px; }
+  @media (prefers-color-scheme: dark) { .aviso { background:#3a2e0d; color:#fcd34d; } }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:16px; }
+  .k { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; }
+  .k b { display:block; font-size:22px; margin-top:4px; font-variant-numeric:tabular-nums; }
+  .k span { color:var(--mut); font-size:12px; }
+  .duas { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:800px) { .duas { grid-template-columns:1fr; } }
+  h2 { font-size:14px; margin:0 0 10px; }
+  .hb { display:grid; grid-template-columns:130px 1fr 40px; gap:8px; align-items:center; margin:5px 0; font-size:13px; }
+  .hb .t { height:10px; background:var(--soft); border-radius:5px; overflow:hidden; }
+  .hb .t i { display:block; height:100%; background:var(--blue); border-radius:5px; }
+  .hb b { text-align:right; font-variant-numeric:tabular-nums; }
+  .hb span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .bar input { flex:1; min-width:180px; }
+  .item { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px; }
+  .item .top { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--mut); }
+  .item .top b { color:var(--ink); font-size:14px; }
+  .item .txt { margin:8px 0; font-size:15px; }
+  .item .resp { background:var(--soft); border-radius:8px; padding:8px 10px; font-size:14px; }
+  .item .resp small { display:block; color:var(--mut); font-size:11px; margin-bottom:2px; }
+  .item .acts { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
+  .item .acts button { padding:3px 9px; font-size:12px; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; color:#fff; background:#6b7280; }
+  .c-golpe,.c-original_preco { background:var(--err); } .c-pedido_problema { background:#b45309; } .c-produto,.c-frete_prazo,.c-pagamento,.c-troca { background:var(--blue); }
+  .c-interesse,.c-marcacao { background:var(--ok); } .c-critica { background:#7c3aed; }
+  .s-respondido { background:var(--ok); } .s-simulado { background:var(--warn); } .s-erro { background:var(--err); } .s-novo { background:var(--blue); }
+  a.lk { color:var(--blue); text-decoration:none; }
+  .log { font-family:ui-monospace,monospace; font-size:12px; color:var(--mut); max-height:220px; overflow:auto; white-space:pre-wrap; }
+  .log .erro { color:var(--err); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Comentários — Instagram e Facebook</h1>
+  <a href="whatsapp.html">WhatsApp</a>
+  <a href="index.html">Painel</a>
+</header>
+<main>
+  <div class="box">
+    <div class="ctl">
+      <span>Status: <span id="stAtivo" class="pill">…</span> <span id="stModo" class="pill">…</span></span>
+      <button id="bAtivo">…</button>
+      <button id="bModo">…</button>
+      <label>Cupom <input id="cCod" size="14"></label>
+      <label>Desconto <input id="cDesc" size="4"></label>
+      <label>Válido até <input id="cVal" type="date"></label>
+      <label>Máx. respostas/hora <input id="cLim" type="number" min="1" max="200" style="width:70px"></label>
+      <label>Responder comentários desde <input id="cDesde" type="date"></label>
+      <button id="bSalvar" class="pri">Salvar</button>
+    </div>
+    <div class="resumo" id="resumo"></div>
+  </div>
+  <div class="aviso" id="aviso" hidden></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="duas">
+    <div class="box"><h2>Sobre o que as pessoas perguntam (30 dias)</h2><div id="gCat"></div></div>
+    <div class="box"><h2>Anúncios com mais comentários (30 dias)</h2><div id="gAd"></div></div>
+  </div>
+
+  <div class="bar">
+    <input id="q" placeholder="Buscar no comentário, resposta ou @autor">
+    <select id="fSt"><option value="">Todos os status</option><option value="simulado">Simulado (não publicado)</option><option value="respondido">Respondido</option><option value="ignorado">Ignorado</option><option value="ocultado">Ocultado</option><option value="novo">Na fila</option><option value="erro">Erro</option><option value="fora_janela">Fora da janela</option><option value="ja_respondido">Respondido pela equipe</option></select>
+    <select id="fCat"><option value="">Todas as categorias</option></select>
+    <select id="fPl"><option value="">Instagram + Facebook</option><option>instagram</option><option>facebook</option></select>
+    <button id="bAtual">Atualizar</button>
+  </div>
+  <div id="lista"></div>
+
+  <div class="box"><h2>Registro das rodadas</h2><div class="log" id="log"></div></div>
+</main>
+<script>
+const SB_URL = 'https://ilekppgaltsrwmnodqxw.supabase.co';
+const SB_KEY = 'sb_publishable_CHIZxHt21omg3SEOHfRu3g_DDnPj72G';
+const H = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const dt = s => s ? new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+const CAT = { golpe: 'Acusa golpe', original_preco: 'Original? / preço', produto: 'Dúvida de produto', frete_prazo: 'Frete e prazo', pagamento: 'Pagamento', troca: 'Troca', pedido_problema: 'Problema com pedido', interesse: 'Interesse / elogio', marcacao: 'Marcou amigo', critica: 'Crítica / ironia', ofensivo: 'Ofensivo', spam: 'Spam', conversa: 'Conversa entre usuários', outro: 'Outro' };
+let cfg = null, rows = [];
+
+async function api(path, opt = {}) {
+  const r = await fetch(SB_URL + '/rest/v1/' + path, { ...opt, headers: { ...H, ...(opt.headers || {}) } });
+  const t = await r.text(); if (!r.ok) throw new Error(t); return t ? JSON.parse(t) : null;
+}
+
+async function carregar() {
+  const desde = new Date(Date.now() - 30 * 864e5).toISOString();
+  const [c, r, l] = await Promise.all([
+    api('meta_config?id=eq.1&select=*'),
+    api('meta_comentarios?select=id,plataforma,origem,anuncio_nome,permalink,autor,texto,criado_em,categoria,acao,resposta,status,erro,motivo,respondido_em,pai_id,tentativas&criado_em=gte.' + desde + '&order=criado_em.desc&limit=3000'),
+    api('meta_log?select=em,nivel,msg&order=em.desc&limit=30')
+  ]);
+  cfg = c[0]; rows = r || [];
+  pintarConfig(); kpis(); graficos(); pintarLista();
+  $('log').innerHTML = l.map(x => '<div class="' + (x.nivel === 'erro' ? 'erro' : '') + '">' + dt(x.em) + '  ' + esc(x.msg) + '</div>').join('');
+}
+
+function pintarConfig() {
+  $('stAtivo').textContent = cfg.ativo ? 'LIGADO' : 'DESLIGADO'; $('stAtivo').className = 'pill ' + (cfg.ativo ? 'on' : 'off');
+  const auto = cfg.modo === 'automatico';
+  $('stModo').textContent = auto ? 'AUTOMÁTICO — publica respostas' : 'SIMULAÇÃO — não publica'; $('stModo').className = 'pill ' + (auto ? 'auto' : 'sim');
+  $('bAtivo').textContent = cfg.ativo ? 'Desligar tudo' : 'Ligar';
+  $('bModo').textContent = auto ? 'Voltar para simulação' : 'Ativar respostas automáticas';
+  $('cCod').value = cfg.cupom_codigo || ''; $('cDesc').value = cfg.cupom_desconto || '';
+  $('cVal').value = (cfg.cupom_validade || '').slice(0, 10); $('cLim').value = cfg.limite_por_hora;
+  $('cDesde').value = (cfg.responder_desde || '').slice(0, 10);
+  $('resumo').textContent = cfg.ultimo_resumo ? 'Última rodada: ' + cfg.ultimo_resumo : 'Nenhuma rodada ainda. Confira as variáveis de ambiente no Netlify.';
+  const hoje = new Date().toISOString().slice(0, 10), av = [];
+  if (cfg.cupom_validade && cfg.cupom_validade.slice(0, 10) < hoje) av.push('O cupom ' + esc(cfg.cupom_codigo) + ' venceu em ' + cfg.cupom_validade.split('-').reverse().join('/') + ' — a IA parou de oferecê-lo. Cadastre o próximo cupom aqui.');
+  if (cfg.ultima_execucao && Date.now() - new Date(cfg.ultima_execucao) > 40 * 60000) av.push('A última rodada foi há mais de 40 minutos — verifique o agendamento no Netlify.');
+  $('aviso').hidden = !av.length; $('aviso').innerHTML = av.join('<br>');
+}
+
+async function salvarCfg(p) {
+  await api('meta_config?id=eq.1', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ ...p, atualizado_em: new Date().toISOString() }) });
+  await carregar();
+}
+$('bAtivo').onclick = () => salvarCfg({ ativo: !cfg.ativo });
+$('bModo').onclick = () => {
+  if (cfg.modo !== 'automatico') {
+    const n = rows.filter(x => x.status === 'simulado' && x.acao === 'responder' && new Date(x.criado_em) >= new Date(cfg.responder_desde)).length;
+    if (!confirm('A partir da próxima rodada (até 10 min) as respostas passam a ser PUBLICADAS no Instagram e no Facebook.\n\n' + n + ' resposta(s) simulada(s) também serão publicadas, respeitando o limite por hora (use "Não publicar" nas que não quiser).\n\nAtivar?')) return;
+  }
+  salvarCfg({ modo: cfg.modo === 'automatico' ? 'simulacao' : 'automatico' });
+};
+$('bSalvar').onclick = () => salvarCfg({
+  cupom_codigo: $('cCod').value.trim().replace(/^#/, '').toUpperCase() || null, cupom_desconto: $('cDesc').value.trim() || null,
+  cupom_validade: $('cVal').value || null, limite_por_hora: Math.max(1, Math.min(200, +$('cLim').value || 40)),
+  responder_desde: $('cDesde').value ? new Date($('cDesde').value + 'T00:00:00-03:00').toISOString() : cfg.responder_desde
+});
+
+function kpis() {
+  const h0 = new Date(); h0.setHours(0, 0, 0, 0);
+  const hoje = rows.filter(x => new Date(x.criado_em) >= h0);
+  const resp = rows.filter(x => x.status === 'respondido' && x.respondido_em);
+  const tempos = resp.map(x => (new Date(x.respondido_em) - new Date(x.criado_em)) / 60000).filter(m => m >= 0).sort((a, b) => a - b);
+  const med = tempos.length ? tempos[Math.floor(tempos.length / 2)] : null;
+  const fmtMin = m => m == null ? '—' : m < 60 ? Math.round(m) + ' min' : (m / 60).toFixed(1).replace('.', ',') + ' h';
+  const cards = [
+    ['Comentários hoje', hoje.length],
+    ['Respondidos hoje', hoje.filter(x => x.status === 'respondido').length],
+    ['Simulados (não publicados)', rows.filter(x => x.status === 'simulado').length],
+    ['Tempo mediano de resposta', fmtMin(med)],
+    ['"Golpe" em 30 dias', rows.filter(x => x.categoria === 'golpe').length],
+    ['Problemas com pedido', rows.filter(x => x.categoria === 'pedido_problema').length],
+    ['Erros', rows.filter(x => x.status === 'erro').length]
+  ];
+  $('kpis').innerHTML = cards.map(c => '<div class="k"><span>' + c[0] + '</span><b>' + c[1] + '</b></div>').join('');
+}
+
+function barras(el, pares) {
+  const max = Math.max(1, ...pares.map(p => p[1]));
+  $(el).innerHTML = pares.length ? pares.map(p => '<div class="hb"><span title="' + esc(p[0]) + '">' + esc(p[0]) + '</span><div class="t"><i style="width:' + (p[1] / max * 100) + '%"></i></div><b>' + p[1] + '</b></div>').join('') : '<span class="resumo">Sem dados ainda.</span>';
+}
+function graficos() {
+  const cont = (arr, f) => { const m = {}; arr.forEach(x => { const k = f(x); if (k) m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+  barras('gCat', cont(rows.filter(x => !['conversa', 'spam'].includes(x.categoria)), x => CAT[x.categoria]).slice(0, 10));
+  barras('gAd', cont(rows.filter(x => x.origem === 'anuncio'), x => x.anuncio_nome).slice(0, 10));
+  const cats = [...new Set(rows.map(x => x.categoria).filter(Boolean))];
+  const sel = $('fCat').value;
+  $('fCat').innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => '<option value="' + c + '"' + (c === sel ? ' selected' : '') + '>' + esc(CAT[c] || c) + '</option>').join('');
+}
+
+function pintarLista() {
+  const q = $('q').value.trim().toLowerCase(), st = $('fSt').value, ca = $('fCat').value, pl = $('fPl').value;
+  const l = rows.filter(x => (!st || x.status === st) && (!ca || x.categoria === ca) && (!pl || x.plataforma === pl) &&
+    (!q || (x.texto || '').toLowerCase().includes(q) || (x.resposta || '').toLowerCase().includes(q) || (x.autor || '').toLowerCase().includes(q))).slice(0, 300);
+  $('lista').innerHTML = l.map(x => {
+    const acts = [];
+    if (x.status === 'simulado') acts.push('<button onclick="mudar(\'' + esc(x.id) + '\',{status:\'ignorado\',motivo:\'manual\'})">Não publicar</button>');
+    if (['ignorado', 'erro', 'fora_janela'].includes(x.status)) acts.push('<button onclick="mudar(\'' + esc(x.id) + '\',{status:\'novo\',tentativas:0,erro:null})">Reprocessar com IA</button>');
+    return '<div class="item"><div class="top"><b>@' + esc(x.autor || '?') + '</b>' +
+      '<span>' + (x.plataforma === 'instagram' ? 'Instagram' : 'Facebook') + ' · ' + (x.origem === 'anuncio' ? 'Anúncio: ' + esc(x.anuncio_nome || '') : 'Post') + (x.pai_id ? ' · resposta em thread' : '') + ' · ' + dt(x.criado_em) + '</span>' +
+      (x.categoria ? '<span class="tag c-' + x.categoria + '">' + esc(CAT[x.categoria] || x.categoria) + '</span>' : '') +
+      '<span class="tag s-' + x.status + '">' + esc(x.status === 'ja_respondido' ? 'respondido pela equipe' : x.status.replace('_', ' ')) + '</span>' +
+      (x.permalink ? '<a class="lk" href="' + esc(x.permalink) + '" target="_blank" rel="noopener">abrir ↗</a>' : '') + '</div>' +
+      '<div class="txt">' + esc(x.texto) + '</div>' +
+      (x.resposta ? '<div class="resp"><small>' + (x.status === 'respondido' ? 'Resposta publicada pela automação ' + dt(x.respondido_em) : x.status === 'ja_respondido' ? 'Resposta já dada pela equipe' : x.status === 'simulado' ? 'Resposta que seria publicada' : 'Sugestão da IA (não publicada' + (x.motivo ? ' — ' + esc(x.motivo) : '') + ')') + '</small>' + esc(x.resposta) + '</div>' : '') +
+      (x.erro ? '<div class="resumo" style="color:var(--err)">' + esc(x.erro) + '</div>' : '') +
+      (acts.length ? '<div class="acts">' + acts.join('') + '</div>' : '') + '</div>';
+  }).join('') || '<div class="box resumo">Nenhum comentário com esses filtros.</div>';
+}
+async function mudar(id, p) {
+  await api('meta_comentarios?id=eq.' + encodeURIComponent(id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ ...p, atualizado_em: new Date().toISOString() }) });
+  carregar();
+}
+['q', 'fSt', 'fCat', 'fPl'].forEach(i => $(i).addEventListener('input', pintarLista));
+$('bAtual').onclick = carregar;
+carregar().catch(e => { $('resumo').textContent = 'Erro ao carregar: ' + e.message; });
+setInterval(carregar, 60000);
+</script>
+</body>
+</html>

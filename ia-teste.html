@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Condux — Simulador da IA</title>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --ink:#1b1f24; --mut:#6b7280; --line:#e5e7eb; --blue:#2563eb; --wa:#dcf8c6; --in:#fff; --warn:#d97706; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111418; --card:#1a1f26; --ink:#eef1f4; --mut:#98a2b3; --line:#2a313b; --wa:#1f3b2c; --in:#232a33; } }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); font-size:14px; }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:12px 16px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; margin-right:auto; }
+  header a { color:var(--blue); text-decoration:none; font-weight:600; }
+  main { max-width:760px; margin:0 auto; padding:16px; }
+  .box { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:12px; }
+  .ctl { display:flex; gap:10px 14px; flex-wrap:wrap; align-items:center; }
+  label { color:var(--mut); font-size:13px; display:flex; gap:6px; align-items:center; }
+  input, select, textarea, button { font:inherit; color:var(--ink); }
+  input, select, textarea { padding:7px 9px; border-radius:8px; border:1px solid var(--line); background:var(--card); }
+  button { padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:var(--card); cursor:pointer; }
+  button.pri { background:var(--blue); border-color:var(--blue); color:#fff; font-weight:600; }
+  .chat { background:var(--card); border:1px solid var(--line); border-radius:12px; display:flex; flex-direction:column; height:calc(100vh - 260px); min-height:420px; }
+  .msgs { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:8px; }
+  .b { max-width:80%; padding:8px 11px; border-radius:12px; white-space:pre-wrap; word-wrap:break-word; line-height:1.4; }
+  .b.in { align-self:flex-start; background:var(--in); border:1px solid var(--line); }
+  .b.out { align-self:flex-end; background:var(--wa); }
+  .b small { display:block; color:var(--mut); font-size:11px; margin-top:4px; }
+  .passos { align-self:center; font-size:12px; color:var(--mut); background:var(--bg); border:1px dashed var(--line); border-radius:8px; padding:6px 10px; max-width:92%; }
+  .tr { color:var(--warn); font-weight:600; }
+  .envio { display:flex; gap:8px; padding:10px; border-top:1px solid var(--line); }
+  .envio textarea { flex:1; resize:none; height:44px; }
+  .mut { color:var(--mut); font-size:12px; }
+  .dicas button { font-size:12px; padding:4px 9px; margin:2px; }
+</style>
+</head>
+<body>
+<header><h1>🧪 Simulador da IA de atendimento</h1><a href="whatsapp.html">Conversas</a><a href="index.html">Painel</a></header>
+<main>
+  <div class="box">
+    <div class="ctl">
+      <label>Canal <select id="canal"><option value="whatsapp">WhatsApp</option><option value="instagram">Direct do Instagram</option><option value="messenger">Messenger</option></select></label>
+      <label>Nome do cliente <input id="nome" placeholder="opcional" style="width:130px"></label>
+      <label title="Para testar pedido: o telefone do pedido precisa ser igual a este">Telefone (WhatsApp) <input id="tel" placeholder="11 99999-8888" style="width:140px"></label>
+      <button id="bLimpar">Nova conversa</button>
+    </div>
+    <div class="mut" style="margin-top:8px">Mesma IA, catálogo da Nuvemshop e consulta de pedidos do atendimento real. <b>Nada é gravado nem enviado a ninguém.</b></div>
+    <div class="dicas" style="margin-top:6px"><span class="mut">Exemplos:</span>
+      <button>Vocês têm fio 2,5 azul?</button><button>Qual fio uso pro chuveiro?</button><button>Vou reformar o apartamento, o que preciso?</button><button>É cobre mesmo? Tô com medo de golpe</button><button>Qual o prazo pra entregar em Recife?</button><button>Cadê meu pedido 170?</button><button>Sou eletricista, tem preço pra quantidade?</button><button>Quero 2 rolos de 2,5 preto e 1 de 1,5 azul, pode fechar</button>
+    </div>
+  </div>
+  <div class="chat">
+    <div class="msgs" id="msgs"><div class="passos">Escreva como se fosse o cliente.</div></div>
+    <div class="envio"><label title="Anexar foto (como se o cliente mandasse)" style="cursor:pointer;font-size:20px;align-self:center">📷<input type="file" id="foto" accept="image/*" hidden></label><textarea id="txt" placeholder="Mensagem do cliente… (Enter envia)"></textarea><button class="pri" id="bEnv">Enviar</button></div>
+  </div>
+</main>
+<script>
+var $ = function (id) { return document.getElementById(id); };
+var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+var conversa = [], carrinho = [];
+function pintar(extra) {
+  var h = conversa.map(function (m) {
+    if (m.tipo === 'passos') return '<div class="passos">' + m.html + '</div>';
+    return '<div class="b ' + m.direcao + '">' + (m.foto ? '<img src="' + m.foto + '" style="max-width:220px;border-radius:8px;display:block;margin-bottom:4px">' : '') + esc(m.texto) + (m.info ? '<small>' + m.info + '</small>' : '') + '</div>';
+  }).join('');
+  $('msgs').innerHTML = h + (extra || '') || '<div class="passos">Escreva como se fosse o cliente.</div>';
+  $('msgs').scrollTop = 1e9;
+}
+async function enviar() {
+  var t = $('txt').value.trim(); if (!t && !$('foto').files[0]) return;
+  var img = null, f = $('foto').files[0];
+  if (f) { img = await reduzirFoto(f); $('foto').value = ''; }
+  $('txt').value = ''; conversa.push({ direcao: 'in', texto: (img ? '[foto] ' : '') + t, foto: img && img.url }); pintar('<div class="passos">IA pensando…</div>');
+  $('bEnv').disabled = true;
+  try {
+    var r = await fetch('/.netlify/functions/ia-teste', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ canal: $('canal').value, telefone: $('tel').value, nome: $('nome').value, imagem: img ? { mime: img.mime, base64: img.base64 } : null, carrinho: carrinho, mensagens: conversa.filter(function (m) { return m.direcao; }).map(function (m) { return { direcao: m.direcao, texto: m.texto }; }) }) });
+    var j = await r.json();
+    if (!r.ok) throw new Error(j.erro || r.status);
+    if (Array.isArray(j.carrinho)) carrinho = j.carrinho;
+    if (j.passos && j.passos.length) conversa.push({ tipo: 'passos', html: j.passos.map(esc).join('<br>') });
+    conversa.push({ direcao: 'out', texto: j.resposta || '(sem resposta)', info: (j.categoria ? 'categoria: ' + esc(j.categoria) + ' · ' : '') + (j.acao === 'transferir' ? '<span class="tr">→ passa para a equipe' + (j.resumo_equipe ? ': ' + esc(j.resumo_equipe) : '') + '</span>' : j.acao === 'excluir' ? 'dados excluídos' : 'IA responde') });
+  } catch (e) { conversa.push({ tipo: 'passos', html: 'Erro: ' + esc(e.message) }); }
+  $('bEnv').disabled = false; pintar(); $('txt').focus();
+}
+// Reduz a foto (máx. 1280px, JPEG) antes de enviar
+function reduzirFoto(f) {
+  return new Promise(function (ok, erro) {
+    var im = new Image(); im.onload = function () {
+      var k = Math.min(1, 1280 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      var url = c.toDataURL('image/jpeg', 0.85); ok({ url: url, mime: 'image/jpeg', base64: url.split(',')[1] });
+    }; im.onerror = erro; im.src = URL.createObjectURL(f);
+  });
+}
+$('foto').onchange = function () { if (this.files[0]) $('txt').placeholder = 'Foto anexada — escreva a mensagem (ou envie só a foto)…'; };
+$('bEnv').onclick = enviar;
+$('txt').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } });
+$('bLimpar').onclick = function () { conversa = []; carrinho = []; pintar(); };
+document.querySelectorAll('.dicas button').forEach(function (b) { b.onclick = function () { $('txt').value = b.textContent; enviar(); }; });
+</script>
+</body>
+</html>

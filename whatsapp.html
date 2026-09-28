@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Condux — Conversas</title>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --ink:#1b1f24; --mut:#6b7280; --line:#e5e7eb; --ok:#0f9d58; --warn:#d97706; --err:#dc2626; --blue:#2563eb; --wa:#dcf8c6; --in:#fff; --soft:#eef2ff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111418; --card:#1a1f26; --ink:#eef1f4; --mut:#98a2b3; --line:#2a313b; --wa:#1f3b2c; --in:#232a33; --soft:#1e2640; } }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); font-size:14px; }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:12px 16px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; margin-right:auto; }
+  header a { color:var(--blue); text-decoration:none; font-weight:600; }
+  main { max-width:1300px; margin:0 auto; padding:16px; }
+  .box { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:14px; }
+  .ctl { display:flex; gap:10px 16px; flex-wrap:wrap; align-items:center; }
+  .ctl label { display:flex; gap:6px; align-items:center; color:var(--mut); font-size:13px; }
+  input, select, textarea, button { font:inherit; color:var(--ink); }
+  .ctl input, .busca input, .busca select { padding:7px 9px; border-radius:8px; border:1px solid var(--line); background:var(--card); }
+  button { padding:7px 12px; border-radius:8px; border:1px solid var(--line); background:var(--card); cursor:pointer; }
+  button.pri { background:var(--blue); border-color:var(--blue); color:#fff; font-weight:600; }
+  .pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; color:#fff; }
+  .on { background:var(--ok); } .off { background:var(--err); } .sim { background:var(--warn); } .auto { background:var(--blue); }
+  .mut { color:var(--mut); font-size:12px; }
+  .grid { display:grid; grid-template-columns:340px 1fr; gap:14px; height:calc(100vh - 230px); min-height:480px; }
+  @media (max-width:820px) { .grid { grid-template-columns:1fr; height:auto; } .lista { max-height:320px; } .chat { min-height:520px; } }
+  .lista, .chat { background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
+  .busca { display:flex; gap:6px; padding:10px; border-bottom:1px solid var(--line); }
+  .busca input { flex:1; min-width:0; }
+  .convs { overflow:auto; flex:1; }
+  .conv { padding:10px 12px; border-bottom:1px solid var(--line); cursor:pointer; display:grid; grid-template-columns:1fr auto; gap:2px 8px; }
+  .conv:hover, .conv.sel { background:var(--soft); }
+  .conv b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .conv .ult { grid-column:1 / 3; color:var(--mut); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tag { display:inline-block; padding:1px 7px; border-radius:999px; font-size:11px; font-weight:700; color:#fff; }
+  .t-ia { background:var(--blue); } .t-humano { background:#7c3aed; } .t-nl { background:var(--ok); }
+  .topo { padding:10px 14px; border-bottom:1px solid var(--line); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .topo h2 { font-size:15px; margin:0; margin-right:auto; }
+  .msgs { flex:1; overflow:auto; padding:14px; display:flex; flex-direction:column; gap:6px; background:var(--bg); }
+  .b { max-width:78%; padding:7px 10px; border-radius:10px; white-space:pre-wrap; word-wrap:break-word; box-shadow:0 1px 0 rgba(0,0,0,.05); }
+  .b small { display:block; color:var(--mut); font-size:11px; margin-top:3px; }
+  .midia { margin:4px 0 2px; }
+  .midia img, .midia video { max-width:260px; max-height:320px; border-radius:8px; display:block; cursor:zoom-in; }
+  .midia audio { width:260px; max-width:100%; }
+  .midia a.carregar { font-size:12px; color:var(--blue); cursor:pointer; }
+  .b.in { background:var(--in); align-self:flex-start; border:1px solid var(--line); }
+  .b.out { background:var(--wa); align-self:flex-end; }
+  .b.simulada { opacity:.75; border:1px dashed var(--warn); }
+  .b.erro { border:1px solid var(--err); }
+  .aviso-24 { padding:6px 14px; font-size:12px; background:#fef3c7; color:#92400e; }
+  @media (prefers-color-scheme: dark) { .aviso-24 { background:#3a2e0d; color:#fcd34d; } }
+  .envio { display:flex; gap:8px; padding:10px; border-top:1px solid var(--line); }
+  .envio textarea { flex:1; resize:none; height:44px; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--card); }
+  .vazio { margin:auto; color:var(--mut); text-align:center; padding:40px; }
+  .log { font-family:ui-monospace,monospace; font-size:12px; color:var(--mut); max-height:160px; overflow:auto; white-space:pre-wrap; }
+  .log .erro { color:var(--err); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Conversas — WhatsApp, Direct e Messenger</h1>
+  <a href="ia-teste.html">🧪 Simulador</a>
+  <a href="comentarios.html">Comentários</a>
+  <a href="index.html">Painel</a>
+</header>
+<main>
+  <div class="box">
+    <div class="ctl">
+      <b>🟢 WhatsApp</b>
+      <span><span id="stAtivo" class="pill">…</span> <span id="stModo" class="pill">…</span></span>
+      <button id="bAtivo">…</button>
+      <button id="bModo">…</button>
+      <label>IA volta a responder após <input id="cPausa" type="number" min="1" max="168" style="width:64px"> h sem a equipe falar</label>
+      <button id="bSalvar" class="pri">Salvar</button>
+      <span class="mut" id="numero"></span>
+    </div>
+    <div class="ctl" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+      <b>📸 Direct do Instagram + 💬 Messenger</b>
+      <span><span id="stDmAtivo" class="pill">…</span> <span id="stDmModo" class="pill">…</span></span>
+      <button id="bDmAtivo">…</button>
+      <button id="bDmModo">…</button>
+      <span class="mut">Mesma IA e mesmas regras do WhatsApp. Envio automático só depois da aprovação da Meta.</span>
+      <button id="bDmDiag">Verificar conexão</button>
+      <button id="bDmAssinar">Ligar Página ao app</button>
+    </div>
+    <pre id="dmDiag" class="mut" style="white-space:pre-wrap;margin:8px 0 0" hidden></pre>
+  </div>
+  <div class="grid">
+    <div class="lista">
+      <div class="busca">
+        <input id="q" placeholder="Buscar nome, @usuário, telefone ou mensagem">
+        <select id="fCanal"><option value="">Todos os canais</option><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="messenger">Messenger</option></select>
+        <select id="fModo"><option value="">Todas</option><option value="humano">Com a equipe</option><option value="ia">Com a IA</option></select>
+      </div>
+      <div class="convs" id="convs"></div>
+    </div>
+    <div class="chat" id="chat"><div class="vazio">Selecione uma conversa</div></div>
+  </div>
+  <div class="box" style="margin-top:14px"><b>Registro</b><div class="log" id="log"></div></div>
+</main>
+<script>
+const SB_URL = 'https://ilekppgaltsrwmnodqxw.supabase.co';
+const SB_KEY = 'sb_publishable_CHIZxHt21omg3SEOHfRu3g_DDnPj72G';
+const H = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const hora = s => s ? new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+const ICONE = { whatsapp: '🟢', instagram: '📸', messenger: '💬' };
+const canalDe = w => /^ig_/.test(w) ? 'instagram' : /^fb_/.test(w) ? 'messenger' : 'whatsapp';
+const fone = w => { if (canalDe(w) !== 'whatsapp') { const c = convs.find(x => x.wa_id === w); return c && c.usuario ? '@' + c.usuario : (canalDe(w) === 'instagram' ? 'Instagram' : 'Messenger'); }
+  return foneWA(w); };
+const foneWA = w => { const d = String(w || ''); return d.startsWith('55') && d.length >= 12 ? `(${d.slice(2, 4)}) ${d.slice(4, -4)}-${d.slice(-4)}` : '+' + d; };
+const AUTOR = { cliente: '', ia: 'IA', equipe: 'Equipe (painel)', equipe_app: 'Equipe (celular)' };
+const ST = { recebida: 'aguardando', respondida: '', simulada: 'simulada — não enviada', enviada: '✓', entregue: '✓✓', lida: '✓✓ lida', erro: 'erro' };
+let cfg = null, convs = [], ultimas = {}, sel = null;
+
+async function api(path, opt = {}) {
+  const r = await fetch(SB_URL + '/rest/v1/' + path, { ...opt, headers: { ...H, ...(opt.headers || {}) } });
+  const t = await r.text(); if (!r.ok) throw new Error(t); return t ? JSON.parse(t) : null;
+}
+async function carregar() {
+  const [c, cv, lg] = await Promise.all([
+    api('wa_config?id=eq.1&select=*'),
+    api('wa_conversas?select=*&order=ultima_msg_em.desc.nullslast&limit=300'),
+    api('wa_log?select=em,nivel,msg&order=em.desc&limit=20')
+  ]);
+  cfg = c[0]; convs = cv || [];
+  if (convs.length) {
+    const ids = convs.slice(0, 150).map(x => x.wa_id);
+    const ult = await api('wa_mensagens?select=wa_id,texto,autor,criado_em&wa_id=in.(' + ids.join(',') + ')&order=criado_em.desc&limit=600');
+    ultimas = {}; for (const m of ult) if (!ultimas[m.wa_id]) ultimas[m.wa_id] = m;
+  }
+  pintarCfg(); pintarLista();
+  $('log').innerHTML = lg.map(x => '<div class="' + (x.nivel === 'erro' ? 'erro' : '') + '">' + hora(x.em) + '  ' + esc(x.msg) + '</div>').join('') || 'Sem registros.';
+  if (sel) await abrir(sel, true);
+}
+function pintarCfg() {
+  $('stAtivo').textContent = cfg.ativo ? 'LIGADO' : 'DESLIGADO'; $('stAtivo').className = 'pill ' + (cfg.ativo ? 'on' : 'off');
+  const auto = cfg.modo === 'automatico';
+  $('stModo').textContent = auto ? 'AUTOMÁTICO — IA envia' : 'SIMULAÇÃO — IA não envia'; $('stModo').className = 'pill ' + (auto ? 'auto' : 'sim');
+  $('bAtivo').textContent = cfg.ativo ? 'Desligar IA' : 'Ligar IA';
+  $('bModo').textContent = auto ? 'Voltar para simulação' : 'Ativar envio automático';
+  if (document.activeElement !== $('cPausa')) $('cPausa').value = cfg.horas_pausa_humano;
+  $('numero').textContent = cfg.numero_exibicao ? 'Número: ' + cfg.numero_exibicao : '';
+  $('stDmAtivo').textContent = cfg.dm_ativo ? 'LIGADO' : 'DESLIGADO'; $('stDmAtivo').className = 'pill ' + (cfg.dm_ativo ? 'on' : 'off');
+  const dAuto = cfg.dm_modo === 'automatico';
+  $('stDmModo').textContent = dAuto ? 'AUTOMÁTICO — IA envia' : 'SIMULAÇÃO — IA não envia'; $('stDmModo').className = 'pill ' + (dAuto ? 'auto' : 'sim');
+  $('bDmAtivo').textContent = cfg.dm_ativo ? 'Desligar IA' : 'Ligar IA';
+  $('bDmModo').textContent = dAuto ? 'Voltar para simulação' : 'Ativar envio automático';
+}
+async function dmSetup(assinar) {
+  const out = $('dmDiag'); out.hidden = false; out.textContent = 'Consultando a Meta…';
+  try {
+    const r = await fetch('/.netlify/functions/dm-setup', assinar ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ acao: 'assinar' }) } : {});
+    out.textContent = JSON.stringify(await r.json(), null, 2);
+  } catch (e) { out.textContent = 'Erro: ' + e.message; }
+}
+$('bDmDiag').onclick = () => dmSetup(false);
+$('bDmAssinar').onclick = () => dmSetup(true);
+$('bDmAtivo').onclick = () => salvarCfg({ dm_ativo: !cfg.dm_ativo });
+$('bDmModo').onclick = () => {
+  if (cfg.dm_modo !== 'automatico' && !confirm('A IA passará a ENVIAR as respostas no Direct do Instagram e no Messenger da Condux. Ativar?')) return;
+  salvarCfg({ dm_modo: cfg.dm_modo === 'automatico' ? 'simulacao' : 'automatico' });
+};
+async function salvarCfg(p) { await api('wa_config?id=eq.1', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ ...p, atualizado_em: new Date().toISOString() }) }); carregar(); }
+$('bAtivo').onclick = () => salvarCfg({ ativo: !cfg.ativo });
+$('bModo').onclick = () => {
+  if (cfg.modo !== 'automatico' && !confirm('A IA passará a ENVIAR as respostas pelo WhatsApp da Condux. Ativar?')) return;
+  salvarCfg({ modo: cfg.modo === 'automatico' ? 'simulacao' : 'automatico' });
+};
+$('bSalvar').onclick = () => salvarCfg({ horas_pausa_humano: Math.max(1, Math.min(168, +$('cPausa').value || 12)) });
+
+function pintarLista() {
+  const q = $('q').value.trim().toLowerCase(), fm = $('fModo').value;
+  const fc = $('fCanal').value;
+  const l = convs.filter(c => (!fm || c.modo === fm) && (!fc || (c.canal || canalDe(c.wa_id)) === fc) && (!q || (c.nome || '').toLowerCase().includes(q) || (c.usuario || '').toLowerCase().includes(q.replace('@', '')) || c.wa_id.includes(q.replace(/\D/g, '') || '@@') || ((ultimas[c.wa_id] || {}).texto || '').toLowerCase().includes(q)));
+  $('convs').innerHTML = l.map(c => {
+    const u = ultimas[c.wa_id] || {};
+    return '<div class="conv' + (c.wa_id === sel ? ' sel' : '') + '" onclick="abrir(\'' + c.wa_id + '\')">' +
+      '<b>' + ICONE[canalDe(c.wa_id)] + ' ' + esc(c.nome || fone(c.wa_id)) + '</b><span class="mut">' + hora(c.ultima_msg_em) + '</span>' +
+      '<span>' + '<span class="tag t-' + c.modo + '">' + (c.modo === 'ia' ? 'IA' : 'Equipe') + '</span> ' + (c.nao_lidas ? '<span class="tag t-nl">' + c.nao_lidas + '</span>' : '') + '</span><span></span>' +
+      '<span class="ult">' + (u.autor && u.autor !== 'cliente' ? esc(AUTOR[u.autor]) + ': ' : '') + esc(u.texto || '') + '</span></div>';
+  }).join('') || '<div class="vazio">Nenhuma conversa ainda.</div>';
+}
+['q', 'fModo', 'fCanal'].forEach(i => $(i).addEventListener('input', pintarLista));
+
+async function abrir(wa_id, silencioso) {
+  sel = wa_id;
+  const c = convs.find(x => x.wa_id === wa_id); if (!c) return;
+  const msgs = await api('wa_mensagens?wa_id=eq.' + wa_id + '&select=*&order=criado_em.asc&limit=500');
+  if (c.nao_lidas) { api('wa_conversas?wa_id=eq.' + wa_id, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ nao_lidas: 0 }) }); c.nao_lidas = 0; }
+  const janela = c.ultima_cliente_em && (Date.now() - new Date(c.ultima_cliente_em)) < 24 * 3600e3;
+  const box = $('msgs'); const noFim = !box || box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  const rascunho = $('txt') ? $('txt').value : '';
+  $('chat').innerHTML =
+    '<div class="topo"><h2>' + ICONE[canalDe(wa_id)] + ' ' + esc(c.nome || fone(wa_id)) + ' <span class="mut">' + fone(wa_id) + '</span></h2>' +
+    '<span class="tag t-' + c.modo + '">' + (c.modo === 'ia' ? 'IA atendendo' : 'Equipe atendendo') + '</span>' +
+    (c.motivo_humano && c.modo === 'humano' ? '<span class="mut">' + esc(c.motivo_humano) + '</span>' : '') +
+    (c.modo === 'ia' ? '<button onclick="modo(\'humano\')">Assumir conversa</button>' : '<button onclick="modo(\'ia\')">Devolver para a IA</button>') + '</div>' +
+    '<div class="msgs" id="msgs">' + msgs.map(m => '<div class="b ' + m.direcao + ' ' + (m.status === 'simulada' ? 'simulada' : '') + (m.status === 'erro' ? ' erro' : '') + '">' + htmlMidia(m) + esc(m.texto || '[' + m.tipo + ']') +
+      '<small>' + (AUTOR[m.autor] ? esc(AUTOR[m.autor]) + ' · ' : '') + hora(m.criado_em) + (ST[m.status] ? ' · ' + ST[m.status] : '') + (m.erro ? ' · ' + esc(m.erro) : '') + '</small></div>').join('') + '</div>' +
+    (janela ? '' : '<div class="aviso-24">Mais de 24h desde a última mensagem do cliente: a Meta só permite responder quando ele escrever de novo.</div>') +
+    '<div class="envio"><textarea id="txt" placeholder="Responder como equipe (a IA pausa nesta conversa)"' + (janela ? '' : ' disabled') + '></textarea><button class="pri" id="bEnv" onclick="enviar()"' + (janela ? '' : ' disabled') + '>Enviar</button></div>';
+  $('txt').value = rascunho;
+  carregarMidias();
+  if (!silencioso || noFim) $('msgs').scrollTop = 1e9;
+  pintarLista();
+}
+// ---- Fotos, áudios e vídeos (baixados sob demanda e guardados na memória da página)
+const MIDIA = {};  // id -> {url, mime} | {erro}
+function htmlMidia(m) {
+  if (!m.midia_id && !m.midia_url) return '';
+  const x = MIDIA[m.id];
+  if (x && x.url) {
+    const t = x.mime || '';
+    if (t.startsWith('image/')) return '<div class="midia"><img src="' + x.url + '" onclick="window.open(this.src)"></div>';
+    if (t.startsWith('audio/')) return '<div class="midia"><audio controls preload="metadata" src="' + x.url + '"></audio></div>';
+    if (t.startsWith('video/')) return '<div class="midia"><video controls preload="metadata" src="' + x.url + '"></video></div>';
+    return '<div class="midia"><a href="' + x.url + '" download>📎 baixar arquivo</a></div>';
+  }
+  if (x && x.erro) return '<div class="midia mut">⚠️ ' + esc(x.erro) + '</div>';
+  return '<div class="midia mut" data-midia="' + esc(m.id) + '">carregando mídia…</div>';
+}
+async function carregarMidias() {
+  const pend = [...document.querySelectorAll('[data-midia]')].map(e => e.getAttribute('data-midia')).filter(id => !MIDIA[id]);
+  for (const id of pend) {
+    MIDIA[id] = { carregando: true };
+    try {
+      const r = await fetch('/.netlify/functions/wa-midia?id=' + encodeURIComponent(id));
+      if (!r.ok) throw new Error(await r.text());
+      const blob = await r.blob();
+      MIDIA[id] = { url: URL.createObjectURL(blob), mime: blob.type };
+    } catch (e) { MIDIA[id] = { erro: String(e.message || e).slice(0, 120) }; }
+    const el = document.querySelector('[data-midia="' + CSS.escape(id) + '"]');
+    if (el && sel) abrir(sel, true);
+  }
+}
+
+async function modo(m) {
+  await api('wa_conversas?wa_id=eq.' + sel, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(m === 'humano' ? { modo: 'humano', humano_desde: new Date().toISOString(), motivo_humano: 'equipe assumiu pelo painel' } : { modo: 'ia', humano_desde: null, motivo_humano: null }) });
+  carregar();
+}
+async function enviar() {
+  const t = $('txt').value.trim(); if (!t) return;
+  $('bEnv').disabled = true;
+  try {
+    const r = await fetch('/.netlify/functions/wa-enviar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wa_id: sel, texto: t }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.erro || r.status);
+    $('txt').value = ''; await carregar();
+  } catch (e) { alert('Não enviado: ' + e.message); }
+  finally { if ($('bEnv')) $('bEnv').disabled = false; }
+}
+carregar().catch(e => { $('convs').innerHTML = '<div class="vazio">Erro ao carregar: ' + esc(e.message) + '</div>'; });
+setInterval(() => carregar().catch(() => {}), 5000);
+</script>
+</body>
+</html>
