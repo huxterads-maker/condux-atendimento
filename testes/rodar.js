@@ -104,6 +104,12 @@ const catalogo = [
     assert.strictEqual(W.interpretarWA(JSON.stringify({ acao: 'responder', resposta: 'Não conseguimos garantir por aqui que o 4 mm² aguenta 7500W. Confirme com o eletricista.' })).acao, 'responder');
     assert.strictEqual(W.interpretarWA(JSON.stringify({ acao: 'responder', resposta: 'O condutor é Alucobre, não é cobre puro.' })).acao, 'responder');
   });
+  await t('trava: promessa de desconto por volume é bloqueada; Pix passa', () => {
+    assert.strictEqual(W.interpretarWA(JSON.stringify({ acao: 'transferir', resposta: 'Opa! Temos sim — vamos passar para a equipe avaliar uma condição especial.' })).motivo, 'promessa_desconto');
+    assert.strictEqual(W.interpretarWA(JSON.stringify({ acao: 'responder', resposta: 'Oferecemos desconto especial para eletricistas!' })).motivo, 'promessa_desconto');
+    assert.strictEqual(W.interpretarWA(JSON.stringify({ acao: 'responder', resposta: 'Temos 10% de desconto no Pix 😊' })).acao, 'responder');
+    assert.strictEqual(W.interpretarWA(JSON.stringify({ acao: 'transferir', resposta: 'Vamos passar seu pedido para a equipe avaliar.' })).motivo, undefined);
+  });
   await t('trava: link inventado no site vira a home da loja', () => {
     const d = W.interpretarWA(JSON.stringify({ acao: 'responder', resposta: 'Veja https://conduxcabos.com.br/produtos/inventado/ e as trocas em https://conduxcabos.com.br/trocas-e-devolucoes/' }));
     assert.ok(d.resposta.includes('Veja https://conduxcabos.com.br e')); assert.ok(d.resposta.includes('trocas-e-devolucoes'));

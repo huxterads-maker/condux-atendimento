@@ -123,11 +123,19 @@ function corrigirLinks(r, linksPermitidos = []) {
   });
 }
 
+// Promessa de desconto/condição que não existe (volume, atacado). Pix e cupom são ok.
+function prometeDesconto(r) {
+  return String(r || '').split(/(?<=[.!?])\s+|\n+/).some(f => !/pix|cupom|\bn[aã]o\b/i.test(f) &&
+    (/\btemos sim\b/i.test(f) && /desconto|condi[cç][aã]o|pre[cç]o especial|atacado|volume/i.test(r) ||
+     /\b(temos|oferecemos|damos|conseguimos|garantimos)\b[^.!?]{0,30}\b(desconto|condi[cç][aã]o especial|pre[cç]o especial|pre[cç]o de atacado)/i.test(f)));
+}
+
 function checarRespostaWA(r, linksPermitidos = []) {
   if (!r || r.length < 2) return 'resposta_vazia';
   if (r.length > 1400) return 'resposta_longa';
   if (/senha|n[uú]mero do cart|cvv|c[oó]digo de seguran/i.test(r)) return 'dado_sensivel';
   if (alegacaoTecnica(r)) return 'alegacao_tecnica';
+  if (prometeDesconto(r)) return 'promessa_desconto';
   const links = r.match(/https?:\/\/[^\s)]+/gi) || [];
   const hostOk = l => { try { return MARCA.hosts.includes(new URL(l.replace(/[.,!?;:]+$/, '')).hostname.toLowerCase()); } catch (e) { return false; } };
   if (links.some(l => !hostOk(l) && !linksPermitidos.some(x => x && l.replace(/[.,!?]+$/, '') === x))) return 'link_externo';
@@ -222,4 +230,4 @@ function msgTransferencia(tipo, agora = new Date()) {
     : `${ini}Vamos te passar ${quem}. Respondemos por aqui no próximo horário de atendimento (${MARCA.horario.texto}) 😊`;
 }
 
-module.exports = { dentroHorario, horarioAtendimento, msgTransferencia, pedidoDaConversa, corrigirLinks, extrairEmails, REGRAS_WA, montarPromptWA, interpretarWA, checarRespostaWA, pedeHumano, extrairPedidos, mesmoTelefone, blocoPedido };
+module.exports = { prometeDesconto, dentroHorario, horarioAtendimento, msgTransferencia, pedidoDaConversa, corrigirLinks, extrairEmails, REGRAS_WA, montarPromptWA, interpretarWA, checarRespostaWA, pedeHumano, extrairPedidos, mesmoTelefone, blocoPedido };
