@@ -38,8 +38,24 @@ const handler = async (event) => {
       const r = await g(`${cfg.phone_number_id}/messages`, { method: 'POST', body: JSON.stringify({ messaging_product: 'whatsapp', to: corpo.para, type: 'template', template: { name: 'hello_world', language: { code: 'en_US' } } }) });
       return json(200, r);
     }
-    const out = { configurado: { waba_id: cfg.waba_id, phone_number_id: cfg.phone_number_id, numero: cfg.numero_exibicao, modo: cfg.modo }, app_secret_configurado: !!process.env.META_APP_SECRET, contas: [] };
-    const wabas = [...((await g(`${BM}/owned_whatsapp_business_accounts?fields=id,name,account_review_status`)).data || []), ...((await g(`${BM}/client_whatsapp_business_accounts?fields=id,name,account_review_status`)).data || [])];
+    // Verificação do número por código (SMS ou ligação) — antes do registro
+    if (event.httpMethod === 'POST' && corpo.acao === 'pedir_codigo' && /^\d+$/.test(corpo.phone_number_id || '')) {
+      const metodo = corpo.metodo === 'VOICE' ? 'VOICE' : 'SMS';
+      return json(200, await g(`${corpo.phone_number_id}/request_code`, { method: 'POST', body: JSON.stringify({ code_method: metodo, language: 'pt_BR' }) }));
+    }
+    if (event.httpMethod === 'POST' && corpo.acao === 'verificar_codigo' && /^\d+$/.test(corpo.phone_number_id || '') && /^\d{6}$/.test(corpo.codigo || '')) {
+      return json(200, await g(`${corpo.phone_number_id}/verify_code`, { method: 'POST', body: JSON.stringify({ code: corpo.codigo }) }));
+    }
+    const out = { configurado: { waba_id: cfg.waba_id, phone_number_id: cfg.phone_number_id, numero: cfg.numero_exibicao, modo: cfg.modo }, app_secret_configurado: !!process.env.META_APP_SECRET, contas: [], erros: [] };
+    const own = await g(`${BM}/owned_whatsapp_business_accounts?fields=id,name,account_review_status`);
+    const cli = await g(`${BM}/client_whatsapp_business_accounts?fields=id,name,account_review_status`);
+    for (const r of [own, cli]) if (r.error) out.erros.push(r.error.message);
+    const wabas = [...(own.data || []), ...(cli.data || [])];
+    // WABA informada à mão (quando o token não lista as contas do portfólio)
+    if (/^\d+$/.test(event.queryStringParameters?.waba || '') && !wabas.some(w => w.id === event.queryStringParameters.waba)) {
+      const w = await g(`${event.queryStringParameters.waba}?fields=id,name,account_review_status`);
+      if (w.error) out.erros.push(w.error.message); else wabas.push(w);
+    }
     for (const w of wabas) {
       const nums = (await g(`${w.id}/phone_numbers?fields=id,display_phone_number,verified_name,name_status,status,platform_type,code_verification_status,quality_rating`)).data || [];
       const inscritos = (await g(`${w.id}/subscribed_apps`)).data || [];
