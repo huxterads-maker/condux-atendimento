@@ -10,7 +10,12 @@ const UA = require('../lib/marca').MARCA.user_agent;
 
 const pt = v => (v && typeof v === 'object') ? (v.pt || v.es || v.en || Object.values(v)[0] || '') : (v || '');
 const num = v => (v === null || v === undefined || v === '') ? null : +v;
-const decodeHtml = s => String(s || '').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ');
+// Entidades HTML das descrições da Nuvemshop (&iacute;, &ccedil;, &sup2;, &#233; ...)
+const ENT = { quot: '"', apos: "'", amp: '&', lt: '<', gt: '>', nbsp: ' ', sup2: '²', sup3: '³', deg: '°', ordm: 'º', ordf: 'ª', middot: '·', ndash: '–', mdash: '—', hellip: '…', laquo: '«', raquo: '»', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', bull: '•', times: '×', frac12: '½', eacute: 'é', Eacute: 'É', aacute: 'á', Aacute: 'Á', iacute: 'í', Iacute: 'Í', oacute: 'ó', Oacute: 'Ó', uacute: 'ú', Uacute: 'Ú', atilde: 'ã', Atilde: 'Ã', otilde: 'õ', Otilde: 'Õ', acirc: 'â', Acirc: 'Â', ecirc: 'ê', Ecirc: 'Ê', ocirc: 'ô', Ocirc: 'Ô', agrave: 'à', Agrave: 'À', ccedil: 'ç', Ccedil: 'Ç', uuml: 'ü', Uuml: 'Ü' };
+const decodeHtml = s => String(s || '')
+  .replace(/&#x([0-9a-f]+);/gi, (m, h) => String.fromCodePoint(parseInt(h, 16)))
+  .replace(/&#(\d+);/g, (m, d) => String.fromCodePoint(+d))
+  .replace(/&([a-z0-9]+);/gi, (m, n) => ENT[n] != null ? ENT[n] : m);
 const texto = html => decodeHtml(String(html || '').replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ').replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|li|h\d|tr|div)>/gi, '\n').replace(/<\/t[dh]>/gi, ' | ').replace(/<[^>]+>/g, ' ')).replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 
 // ------------------------------ Catálogo ------------------------------------

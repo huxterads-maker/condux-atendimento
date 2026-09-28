@@ -32,6 +32,10 @@ const catalogo = [
     assert.strictEqual(p.preco, 53.25); assert.strictEqual(p.preco_de, 110);
     assert.strictEqual(p.variantes.length, 3);
   });
+  await t('descrição da Nuvemshop sem entidades HTML (acentos, ²)', () => {
+    const p = N.produtoParaCatalogo({ id: 1, name: { pt: 'X' }, handle: { pt: 'x' }, variants: [{ id: 1, values: [], price: '1' }], description: { pt: '<p>Cabo Flex&iacute;vel 1,5 mm&sup2; &eacute; indicado. Isola&ccedil;&atilde;o &#233;</p>' } });
+    assert.strictEqual(p.descricao, 'Cabo Flexível 1,5 mm² é indicado. Isolação é');
+  });
   await t('busca por bitola "fio 2,5 azul" acha o 2,5 mm² primeiro', () => {
     const r = CAT.buscar(catalogo, 'quero fio 2,5 azul');
     assert.ok(r.length); assert.ok(/2,5 mm/.test(r[0].nome), r.map(x => x.nome).join(' | '));
