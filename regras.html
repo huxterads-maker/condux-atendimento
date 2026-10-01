@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Condux — Regras e argumentos</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --ink:#1b1f24; --mut:#6b7280; --line:#e5e7eb; --blue:#1162b9; --soft:#eaf2fb; --ok:#0f9d58; --err:#dc2626; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111418; --card:#1a1f26; --ink:#eef1f4; --mut:#98a2b3; --line:#2a313b; --soft:#16263a; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { background:var(--blue); color:#fff; padding:14px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  header a { color:#fff; text-decoration:none; opacity:.85; font-size:14px; }
+  header h1 { margin:0; font-size:18px; flex:1; min-width:200px; }
+  .bt { border:1px solid rgba(255,255,255,.5); background:transparent; color:#fff; border-radius:8px; padding:6px 12px; font:inherit; font-size:14px; cursor:pointer; }
+  .bt.pri { background:#fff; color:var(--blue); border-color:#fff; font-weight:600; }
+  .wrap { max-width:1100px; margin:0 auto; padding:20px 16px 64px; display:grid; grid-template-columns:220px 1fr; gap:24px; }
+  @media (max-width:820px) { .wrap { grid-template-columns:1fr; } nav.toc { display:none; } }
+  nav.toc { position:sticky; top:16px; align-self:start; font-size:13px; }
+  nav.toc a { display:block; color:var(--mut); text-decoration:none; padding:4px 0 4px 10px; border-left:2px solid var(--line); }
+  nav.toc a:hover { color:var(--blue); border-color:var(--blue); }
+  .meta { color:var(--mut); font-size:12px; margin-bottom:10px; }
+  article { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:8px 24px 24px; min-width:0; }
+  article h1 { font-size:24px; margin:16px 0 4px; }
+  article h2 { font-size:18px; margin:28px 0 8px; padding-top:12px; border-top:1px solid var(--line); scroll-margin-top:12px; }
+  article table { border-collapse:collapse; width:100%; margin:8px 0 14px; font-size:14px; display:block; overflow-x:auto; }
+  article th, article td { border:1px solid var(--line); padding:6px 10px; text-align:left; white-space:nowrap; }
+  article th { background:var(--soft); }
+  article td { font-variant-numeric:tabular-nums; }
+  article blockquote { margin:8px 0 14px; background:var(--soft); border-left:4px solid var(--blue); border-radius:8px; padding:10px 44px 10px 14px; position:relative; }
+  article blockquote p { margin:0; }
+  .cp { position:absolute; top:8px; right:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:6px; font-size:12px; padding:2px 7px; cursor:pointer; }
+  article a { color:var(--blue); }
+  article li input[type=checkbox] { margin-right:6px; }
+  .edit { display:none; grid-column:1 / -1; }
+  .edit textarea { width:100%; min-height:70vh; font:13px/1.5 ui-monospace,Menlo,Consolas,monospace; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+  .edit .row { display:flex; gap:8px; margin-top:10px; align-items:center; }
+  .edit .row button { border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:8px; padding:8px 14px; font:inherit; cursor:pointer; }
+  .edit .row button.pri { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .msg { font-size:13px; } .ok { color:var(--ok); } .err { color:var(--err); }
+  body.editando .wrap > nav, body.editando .wrap > div.view { display:none; } body.editando .edit { display:block; }
+  @media print { header, nav.toc, .cp { display:none !important; } .wrap { display:block; padding:0; } article { border:0; } }
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">← Painel</a>
+  <h1>📘 Regras e argumentos de venda</h1>
+  <button class="bt" onclick="window.print()">Imprimir</button>
+  <button class="bt pri" id="b-editar">Editar</button>
+</header>
+<div class="wrap">
+  <nav class="toc" id="toc"></nav>
+  <div class="view"><div class="meta" id="meta">Carregando…</div><article id="art"></article></div>
+  <div class="edit">
+    <p class="meta">Escreva em Markdown: <b>## título</b>, <b>**negrito**</b>, listas com <b>-</b>, tabelas com <b>|</b>. Frases começando com <b>&gt;</b> viram respostas prontas com o botão "copiar".</p>
+    <textarea id="txt" spellcheck="true"></textarea>
+    <div class="row"><button class="pri" id="b-salvar">Salvar</button><button id="b-cancelar">Cancelar</button><span class="msg" id="msg"></span></div>
+  </div>
+</div>
+<script>
+const SB_URL = 'https://ilekppgaltsrwmnodqxw.supabase.co';
+const SB_KEY = 'sb_publishable_CHIZxHt21omg3SEOHfRu3g_DDnPj72G';
+const sb = (p, o = {}) => fetch(SB_URL + '/rest/v1/' + p, { ...o, headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', ...(o.headers || {}) } });
+const SLUG = 'regras';
+let atual = '';
+const email = () => { try { const s = JSON.parse(localStorage.getItem('sb-ilekppgaltsrwmnodqxw-auth-token')); return (s && s.user && s.user.email) || 'painel'; } catch (e) { return 'painel'; } };
+const fmt = d => new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+const slugify = t => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+function render(md) {
+  const art = document.getElementById('art');
+  art.innerHTML = DOMPurify.sanitize(marked.parse(md, { gfm: true }));
+  art.querySelectorAll('a[href^="http"]').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+  const toc = document.getElementById('toc'); toc.innerHTML = '';
+  art.querySelectorAll('h2').forEach(h => { h.id = slugify(h.textContent); const a = document.createElement('a'); a.href = '#' + h.id; a.textContent = h.textContent; toc.appendChild(a); });
+  art.querySelectorAll('blockquote').forEach(q => {
+    const b = document.createElement('button'); b.className = 'cp'; b.textContent = 'copiar';
+    b.onclick = async () => { const t = q.innerText.replace(/^copiar\s*/, '').replace(/\s*copiar$/, '').replace(/^"|"$/g, '').trim(); try { await navigator.clipboard.writeText(t); b.textContent = 'copiado ✓'; } catch (e) { b.textContent = 'erro'; } setTimeout(() => b.textContent = 'copiar', 1500); };
+    q.appendChild(b);
+  });
+}
+
+async function carregar() {
+  try {
+    const r = await sb(`pagina_interna?slug=eq.${SLUG}&select=conteudo,atualizado_em,atualizado_por`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const row = (await r.json())[0];
+    atual = row ? row.conteudo : '# Regras e argumentos de venda\n\n(vazio — clique em Editar)';
+    document.getElementById('meta').textContent = row ? `Atualizado em ${fmt(row.atualizado_em)} por ${row.atualizado_por || '—'}` : '';
+    render(atual);
+  } catch (e) { document.getElementById('meta').textContent = 'Erro ao carregar: ' + e.message; }
+}
+
+document.getElementById('b-editar').onclick = () => { document.getElementById('txt').value = atual; document.body.classList.add('editando'); document.getElementById('msg').textContent = ''; };
+document.getElementById('b-cancelar').onclick = () => document.body.classList.remove('editando');
+document.getElementById('b-salvar').onclick = async () => {
+  const msg = document.getElementById('msg'); msg.className = 'msg'; msg.textContent = 'Salvando…';
+  const conteudo = document.getElementById('txt').value;
+  const r = await sb('pagina_interna?on_conflict=slug', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ slug: SLUG, conteudo, atualizado_em: new Date().toISOString(), atualizado_por: email() }) });
+  if (!r.ok) { msg.className = 'msg err'; msg.textContent = 'Erro ao salvar (' + r.status + ')'; return; }
+  document.body.classList.remove('editando'); await carregar();
+};
+carregar();
+</script>
+</body>
+</html>
