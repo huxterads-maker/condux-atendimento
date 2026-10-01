@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Condux — Consulta rápida</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --ink:#1b1f24; --mut:#6b7280; --line:#e5e7eb; --blue:#1162b9; --soft:#eaf2fb; --hl:#fff3b0; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111418; --card:#1a1f26; --ink:#eef1f4; --mut:#98a2b3; --line:#2a313b; --soft:#16263a; --hl:#5a4a00; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  .top { background:var(--blue); padding:14px 16px 26px; }
+  .top .nav { max-width:820px; margin:0 auto 12px; display:flex; justify-content:space-between; font-size:14px; }
+  .top a { color:#fff; opacity:.85; text-decoration:none; }
+  .top h1 { max-width:820px; margin:0 auto 10px; color:#fff; font-size:20px; }
+  .busca { max-width:820px; margin:0 auto; position:relative; }
+  .busca input { width:100%; font-size:22px; padding:18px 52px 18px 20px; border-radius:14px; border:0; outline:none; box-shadow:0 6px 24px rgba(0,0,0,.18); background:var(--card); color:var(--ink); }
+  .busca button { position:absolute; right:12px; top:50%; transform:translateY(-50%); border:0; background:transparent; font-size:22px; color:var(--mut); cursor:pointer; display:none; }
+  .chips { max-width:820px; margin:12px auto 0; display:flex; flex-wrap:wrap; gap:6px; }
+  .chips button { border:1px solid rgba(255,255,255,.45); background:rgba(255,255,255,.12); color:#fff; border-radius:999px; padding:5px 12px; font:inherit; font-size:13px; cursor:pointer; }
+  main { max-width:820px; margin:0 auto; padding:18px 16px 64px; }
+  .info { color:var(--mut); font-size:13px; margin:4px 2px 12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 16px; margin-bottom:10px; }
+  .card .sec { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mut); margin-bottom:4px; }
+  .card .q { font-weight:700; margin-bottom:6px; }
+  .card p { margin:4px 0; } .card ul { margin:4px 0; padding-left:20px; }
+  .card table { border-collapse:collapse; font-size:14px; margin:4px 0; display:block; overflow-x:auto; }
+  .card th, .card td { border:1px solid var(--line); padding:4px 8px; text-align:left; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .card th { background:var(--soft); }
+  .card blockquote { margin:6px 0 2px; background:var(--soft); border-left:4px solid var(--blue); border-radius:8px; padding:10px 14px; }
+  .card blockquote p { margin:0; }
+  .acoes { margin-top:8px; }
+  .acoes button { border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; padding:6px 14px; font:inherit; font-size:14px; cursor:pointer; }
+  mark { background:var(--hl); color:inherit; border-radius:3px; padding:0 1px; }
+  .vazio { text-align:center; color:var(--mut); padding:30px 10px; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="nav"><a href="index.html">← Painel</a><a href="regras.html">Ver / editar todas as regras →</a></div>
+  <h1>🔎 Consulta rápida</h1>
+  <div class="busca">
+    <input id="q" type="search" placeholder="Digite a dúvida do cliente… ex.: é cobre?, boleto, revenda, chuveiro" autocomplete="off" autofocus>
+    <button id="limpar" title="Limpar">✕</button>
+  </div>
+  <div class="chips" id="chips"></div>
+</div>
+<main>
+  <div class="info" id="info">Carregando…</div>
+  <div id="res"></div>
+</main>
+<script>
+const SB_URL = 'https://ilekppgaltsrwmnodqxw.supabase.co';
+const SB_KEY = 'sb_publishable_CHIZxHt21omg3SEOHfRu3g_DDnPj72G';
+const sb = p => fetch(SB_URL + '/rest/v1/' + p, { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } });
+
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+// Palavras que o cliente usa → palavras que aparecem nas regras
+const SIN = {
+  cobre: ['alucobre', 'cobre'], puro: ['alucobre', 'cobre'], aluminio: ['alucobre'], cobreado: ['alucobre'], cca: ['alucobre'],
+  barato: ['baixo', 'barato', 'preco'], baixo: ['baixo'], porque: [], 'por que': [], pagar: ['pagamento', 'pix', 'cartao'], pagamento: ['pagamento'], caro: ['preco'], valor: ['preco'], quanto: ['preco'], custa: ['preco'], tabela: ['tabela', 'preco'],
+  boleto: ['boleto', 'faturado', 'pagamento'], faturamento: ['faturado', 'boleto'], fatura: ['faturado'], prazo: ['prazo', 'boleto'],
+  parcela: ['parcela', 'cartao', '10x'], parcelamento: ['parcela', '10x', 'cartao'], vezes: ['10x', 'parcela'], juros: ['juros', '10x'], parcelar: ['parcela', 'cartao', '10x'], parcelado: ['parcela', '10x'], cartao: ['cartao', '10x'], credito: ['cartao'],
+  pix: ['pix'], desconto: ['desconto', 'pix'], cupom: ['cupom', 'desconto'],
+  revenda: ['revenda', 'revender', 'lojista'], revender: ['revenda'], lojista: ['revenda'], atacado: ['revenda'], loja: ['loja', 'revenda'],
+  retirar: ['retirada'], retirada: ['retirada'], buscar: ['retirada'], motoboy: ['motoboy', 'retirada'],
+  frete: ['frete', 'envio'], entrega: ['frete', 'envio', 'entrega'], prazo_entrega: ['24'], demora: ['envio', '24'], chega: ['envio', '24'],
+  nota: ['nota', 'fiscal'], nf: ['nota', 'fiscal'], fiscal: ['nota', 'fiscal'],
+  minimo: ['minimo'], minima: ['minima', 'minimo'],
+  metro: ['metros', 'rolo'], metros: ['metros', 'rolo'], rolo: ['rolo'], emenda: ['emendas'], fracionado: ['fracionada'],
+  chuveiro: ['chuveiro'], aquecedor: ['aquecedor'], tomada: ['tomadas'], tomadas: ['tomadas'], luz: ['iluminacao'], lampada: ['iluminacao'], iluminacao: ['iluminacao'], quadro: ['quadro', 'distribuicao'],
+  bitola: ['bitola'], 'qual': [], usar: ['bitola', 'uso'],
+  kit: ['kit'], kits: ['kit'], obra: ['obra', 'kit'], reforma: ['reforma', 'kit'], apartamento: ['apartamento'],
+  cor: ['cor', 'cores'], cores: ['cores'], troca: ['troca', 'trocas'], trocar: ['troca'], devolver: ['devolucao', 'troca'], garantia: ['garantia'],
+  fisica: ['fisica'], endereco: ['endereco', 'indaiatuba'], onde: ['indaiatuba', 'endereco'],
+  '10mm': ['10 mm'], '16mm': ['16 mm'], pp: ['pp'], triplex: ['triplex'], duplex: ['duplex'], rigido: ['rigido'],
+  licitacao: ['licitacao'], construtora: ['construtora'], cnpj: ['cnpj'], empresa: ['empresa', 'cnpj'],
+  confiavel: ['receio', 'mercado livre'], golpe: ['receio', 'mercado livre'], seguro: ['receio', 'mercado livre'], medo: ['receio'], mercadolivre: ['mercado livre'],
+  norma: ['nbr', 'norma'], abnt: ['nbr'], inmetro: ['nbr', 'norma'], fabrica: ['fabrica', 'fabricante'], fabricante: ['fabricante'],
+  horario: ['horario', 'segunda'], sabado: ['horario'], domingo: ['horario'],
+};
+const STOP = new Set('o a os as de da do das dos e em no na nos nas um uma para pra pro por com que se tem temos voces vcs voce ele ela isso esse essa eh posso pode quero queria gostaria saber eu me meu minha ai aqui la tao muito mesmo fio fios cabo cabos sim ok oi ola bom dia tarde noite favor'.split(' '));
+const CHIPS = [['É 100% cobre?'], ['Por que tão barato?', 'preço baixo barato'], ['Revenda'], ['Parcelamento'], ['Boleto'], ['Retirada'], ['Frete'], ['Nota fiscal'], ['Qual bitola?', 'bitola uso'], ['Kits'], ['Não temos', '10mm triplex pp'], ['Trocas']];
+
+let blocos = [];
+
+function quebrar(md) {
+  const toks = marked.lexer(md); const out = []; let sec = '', sub = '', pend = null;
+  const push = (html, txt, q) => out.push({ sec: sub ? `${sec} › ${sub}` : sec, q: q || '', html, txt: norm((q || '') + ' ' + sec + ' ' + sub + ' ' + txt), resposta: /<blockquote/.test(html) });
+  for (const t of toks) {
+    if (t.type === 'heading') { if (pend) { push('', pend.txt, pend.txt); pend = null; } if (t.depth <= 2) { sec = t.text.replace(/^\d+\.\s*/, ''); sub = ''; } else sub = t.text; continue; }
+    if (t.type === 'space' || t.type === 'hr') continue;
+    // Pergunta em negrito seguida de resposta (blockquote)
+    if (t.type === 'paragraph' && /^\*\*[^*]+\*\*(\s*\/\s*\*\*[^*]+\*\*)*\s*$/.test(t.raw.trim())) { if (pend) push('', pend.txt, pend.txt); pend = { txt: t.text.replace(/\*\*/g, '') }; continue; }
+    if (t.type === 'blockquote' && pend) { push(marked.parser([t]), t.text, pend.txt); pend = null; continue; }
+    // Título em negrito seguido de lista ou tabela: vira um card só
+    if ((t.type === 'list' || t.type === 'table') && pend) { push(marked.parser([t]), t.raw, pend.txt); pend = null; continue; }
+    if (pend) { push('', pend.txt, pend.txt); pend = null; }
+    if (t.type === 'list') { t.items.forEach(it => push(marked.parse(it.raw.replace(/^\s*[-*\d.]+\s*(\[[ x]\]\s*)?/, '- ')), it.text)); continue; }
+    // Parágrafo que apresenta uma lista/tabela: junta com o próximo bloco
+    push(marked.parser([t]), t.raw);
+  }
+  return out;
+}
+
+function termos(q) {
+  const base = norm(q).replace(/[?!.,;:]/g, ' ').split(/\s+/).filter(w => w && !STOP.has(w));
+  return base.map(w => { const s = SIN[w] || SIN[w.replace(/s$/, '')] || []; return [w, ...s.map(norm)]; });
+}
+
+function buscar(q) {
+  const res = document.getElementById('res'), info = document.getElementById('info');
+  document.getElementById('limpar').style.display = q ? 'block' : 'none';
+  if (!q.trim()) { res.innerHTML = ''; info.textContent = `${blocos.length} respostas e regras disponíveis. Digite a dúvida ou toque num atalho.`; return; }
+  const grupos = termos(q); if (!grupos.length) { res.innerHTML = ''; return; }
+  const N = blocos.length || 1;
+  const idf = w => { const df = blocos.reduce((n, b) => n + (b.txt.includes(w) ? 1 : 0), 0); return df ? Math.log(1 + N / df) : 0; };
+  const pont = blocos.map(b => {
+    let s = 0, hits = 0; const qn = norm(b.q);
+    for (const g of grupos) {
+      let melhor = 0;
+      g.forEach((w, i) => { if (w.length < 2 || !b.txt.includes(w)) return; const v = idf(w) * (qn.includes(w) ? 2.5 : 1) * (i === 0 ? 1 : 0.8); if (v > melhor) melhor = v; });
+      if (melhor) { s += melhor; hits++; }
+    }
+    if (!hits) return null;
+    s *= (hits / grupos.length); if (b.resposta) s *= 1.25;
+    return { b, s };
+  }).filter(Boolean).sort((a, z) => z.s - a.s).slice(0, 8);
+  info.textContent = pont.length ? `${pont.length} resultado(s) para "${q}"` : '';
+  if (!pont.length) { res.innerHTML = `<div class="vazio">Nada encontrado para "<b>${q.replace(/</g, '&lt;')}</b>".<br>Tente outra palavra ou veja <a href="regras.html">todas as regras</a>.</div>`; return; }
+  const marcar = grupos.flat().filter(w => w.length > 2);
+  res.innerHTML = '';
+  for (const { b } of pont) {
+    const el = document.createElement('div'); el.className = 'card';
+    el.innerHTML = `<div class="sec">${b.sec}</div>${b.q ? `<div class="q">${b.q}</div>` : ''}${DOMPurify.sanitize(b.html)}`;
+    destacar(el, marcar);
+    const bq = el.querySelector('blockquote');
+    if (bq) {
+      const d = document.createElement('div'); d.className = 'acoes'; const bt = document.createElement('button'); bt.textContent = '📋 Copiar resposta';
+      bt.onclick = async () => { try { await navigator.clipboard.writeText(bq.innerText.replace(/^"|"$/g, '').trim()); bt.textContent = '✓ Copiado'; } catch (e) { bt.textContent = 'Erro ao copiar'; } setTimeout(() => bt.textContent = '📋 Copiar resposta', 1500); };
+      d.appendChild(bt); el.appendChild(d);
+    }
+    el.querySelectorAll('a[href^="http"]').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+    res.appendChild(el);
+  }
+}
+
+function destacar(el, palavras) {
+  if (!palavras.length) return;
+  const w = el.ownerDocument.createTreeWalker(el, NodeFilter.SHOW_TEXT); const nos = []; while (w.nextNode()) nos.push(w.currentNode);
+  for (const n of nos) {
+    const t = n.nodeValue, tn = norm(t); const marcas = [];
+    for (const p of palavras) { let i = tn.indexOf(p); while (i >= 0) { marcas.push([i, i + p.length]); i = tn.indexOf(p, i + p.length); } }
+    if (!marcas.length) continue;
+    marcas.sort((a, b) => a[0] - b[0]); const f = document.createDocumentFragment(); let pos = 0;
+    for (const [a, b] of marcas) { if (a < pos) continue; f.appendChild(document.createTextNode(t.slice(pos, a))); const m = document.createElement('mark'); m.textContent = t.slice(a, b); f.appendChild(m); pos = b; }
+    f.appendChild(document.createTextNode(t.slice(pos))); n.parentNode.replaceChild(f, n);
+  }
+}
+
+const q = document.getElementById('q');
+let tmr; q.addEventListener('input', () => { clearTimeout(tmr); tmr = setTimeout(() => buscar(q.value), 120); });
+q.addEventListener('keydown', e => { if (e.key === 'Escape') { q.value = ''; buscar(''); } });
+document.getElementById('limpar').onclick = () => { q.value = ''; buscar(''); q.focus(); };
+const chips = document.getElementById('chips');
+CHIPS.forEach(([rot, busca]) => { const b = document.createElement('button'); b.textContent = rot; b.onclick = () => { q.value = busca || rot; buscar(q.value); q.focus(); }; chips.appendChild(b); });
+
+(async () => {
+  try {
+    const r = await sb('pagina_interna?slug=eq.regras&select=conteudo');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const row = (await r.json())[0];
+    blocos = quebrar(row ? row.conteudo : '');
+    buscar(q.value);
+  } catch (e) { document.getElementById('info').textContent = 'Erro ao carregar as regras: ' + e.message; }
+})();
+</script>
+</body>
+</html>
